@@ -36,6 +36,32 @@ fn checksum<I: AsRef<[u8]>, T: Iterator<Item = I>>(input: T) -> usize {
     return twice * thrice;
 }
 
+fn find_differ_by_one<S: AsRef<[u8]>, T: AsRef<[S]>>(input: &T) -> Option<Vec<u8>> {
+    for i in input.as_ref() {
+        for j in input.as_ref() {
+            /* Since i and j have the type &S, they aren't usable as slices until we force them to
+               be &[u8]. */
+            let i = i.as_ref();
+            let j = j.as_ref();
+
+            if j.len() != i.len() {
+                continue;
+            }
+
+            let common: Vec<_> = i
+                .iter()
+                .zip(j)
+                .filter_map(|(x, y)| if x == y { Some(*x) } else { None })
+                .collect();
+            if common.len() == i.len() - 1 {
+                return Some(common);
+            }
+        }
+    }
+
+    None
+}
+
 fn main() {
     let stdin = std::io::stdin();
     let lock = stdin.lock();
@@ -104,5 +130,15 @@ fn examples() {
                 .iter()
         ),
         12
+    );
+}
+
+#[test]
+fn examples_2() {
+    assert_eq!(
+        find_differ_by_one(&vec![
+            b"abcde", b"fghij", b"klmno", b"pqrst", b"fguij", b"axcye", b"wvxyz"
+        ]),
+        Some(b"fgij".to_vec())
     );
 }
