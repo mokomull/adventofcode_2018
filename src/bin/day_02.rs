@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 #[derive(Debug, PartialEq)]
 struct Letters {
     twice: Option<u8>,
@@ -32,6 +34,16 @@ fn checksum<I: AsRef<[u8]>, T: Iterator<Item = I>>(input: T) -> usize {
     }
 
     return twice * thrice;
+}
+
+fn main() {
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    println!(
+        "Checksum: {}",
+        checksum(lock.lines().filter_map(|i| i.ok()))
+    );
 }
 
 #[test]
