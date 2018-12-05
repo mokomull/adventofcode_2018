@@ -17,6 +17,23 @@ fn count(input: &[u8]) -> Letters {
     }
 }
 
+fn checksum<I: AsRef<[u8]>, T: Iterator<Item = I>>(input: T) -> usize {
+    let mut twice = 0;
+    let mut thrice = 0;
+
+    for i in input {
+        let c = count(i.as_ref());
+        if c.twice.is_some() {
+            twice += 1;
+        }
+        if c.thrice.is_some() {
+            thrice += 1;
+        }
+    }
+
+    return twice * thrice;
+}
+
 #[test]
 fn examples() {
     assert_eq!(
@@ -67,5 +84,13 @@ fn examples() {
             twice: None,
             thrice: Some(b'a')
         }
+    );
+
+    assert_eq!(
+        checksum(
+            vec![b"abcdef", b"bababc", b"abbcde", b"abcccd", b"aabcdd", b"abcdee", b"ababab"]
+                .iter()
+        ),
+        12
     );
 }
