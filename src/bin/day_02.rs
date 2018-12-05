@@ -33,7 +33,7 @@ fn checksum<I: AsRef<[u8]>, T: Iterator<Item = I>>(input: T) -> usize {
         }
     }
 
-    return twice * thrice;
+    twice * thrice
 }
 
 fn find_differ_by_one<S: AsRef<[u8]>, T: AsRef<[S]>>(input: &T) -> Option<Vec<u8>> {
