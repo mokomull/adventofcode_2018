@@ -66,10 +66,16 @@ fn main() {
     let stdin = std::io::stdin();
     let lock = stdin.lock();
 
-    println!(
-        "Checksum: {}",
-        checksum(lock.lines().filter_map(|i| i.ok()))
-    );
+    let lines: Vec<_> = lock.lines().filter_map(|i| i.ok()).collect();
+
+    println!("Checksum: {}", checksum(lines.iter()));
+    match find_differ_by_one(&lines) {
+        Some(found) => println!(
+            "Letters in common: {}",
+            String::from_utf8(found).expect("input should be valid UTF8")
+        ),
+        None => println!("Did not find a match"),
+    }
 }
 
 #[test]
