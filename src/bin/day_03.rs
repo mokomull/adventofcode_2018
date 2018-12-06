@@ -165,3 +165,71 @@ fn example() {
     assert_eq!(count_overlapping(&claims), 4);
     assert_eq!(find_nonoverlapping(&claims), Some(3));
 }
+
+#[test]
+fn broke_it() {
+    assert!(intersects(
+        &Claim {
+            id: 881,
+            top: 316,
+            left: 337,
+            height: 11,
+            width: 23,
+        },
+        &Claim {
+            id: 6,
+            top: 304,
+            left: 347,
+            height: 24,
+            width: 17,
+        }
+    ));
+    assert!(intersects(
+        &Claim {
+            id: 6,
+            top: 304,
+            left: 347,
+            height: 24,
+            width: 17,
+        },
+        &Claim {
+            id: 881,
+            top: 316,
+            left: 337,
+            height: 11,
+            width: 23,
+        }
+    ));
+    assert!(intersects(
+        &Claim {
+            id: 881,
+            left: 316,
+            top: 337,
+            width: 11,
+            height: 23,
+        },
+        &Claim {
+            id: 6,
+            left: 304,
+            top: 347,
+            width: 24,
+            height: 17,
+        }
+    ));
+    assert!(intersects(
+        &Claim {
+            id: 6,
+            left: 304,
+            top: 347,
+            width: 24,
+            height: 17,
+        },
+        &Claim {
+            id: 881,
+            left: 316,
+            top: 337,
+            width: 11,
+            height: 23,
+        },
+    ));
+}
