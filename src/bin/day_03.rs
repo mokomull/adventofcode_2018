@@ -68,6 +68,43 @@ fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
     count
 }
 
+fn in_range(x: usize, lower: usize, upper: usize) -> bool {
+    x >= lower && x < upper
+}
+
+fn intersects(a: &Claim, b: &Claim) -> bool {
+    /* compare the four corners of a with b's dimensions */
+
+    /* top left */
+    if (in_range(a.left, b.left, b.left + b.width) && in_range(a.top, b.top, b.top + b.height))
+    /* top right */
+        || (in_range(a.left + a.width, b.left, b.left + b.width)
+            && in_range(a.top, b.top, b.top + b.height))
+    /* bottom left */
+        || (in_range(a.left, b.left, b.left + b.width)
+            && in_range(a.top + a.height, b.top, b.top + b.height))
+    /* bottom right */
+        || (in_range(a.left + a.width, b.left, b.left + b.width)
+            && in_range(a.top + a.height, b.top, b.top + b.height))
+    {
+        return true;
+    }
+    false
+}
+
+fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T) -> Option<usize> {
+    for i in input.as_ref() {
+        if input
+            .as_ref()
+            .iter()
+            .all(|j| !intersects(i, j) || i.id == j.id)
+        {
+            return Some(i.id);
+        }
+    }
+    None
+}
+
 fn main() {
     use std::io::BufRead;
 
@@ -80,6 +117,7 @@ fn main() {
         .collect();
 
     println!("Overlapping squares: {}", count_overlapping(&claims));
+    find_nonoverlapping(&claims).map(|i| println!("Nonoverlapping id: {}", i));
 }
 
 #[test]
@@ -125,4 +163,5 @@ fn example() {
     ];
 
     assert_eq!(count_overlapping(&claims), 4);
+    assert_eq!(find_nonoverlapping(&claims), Some(3));
 }
