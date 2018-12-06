@@ -40,7 +40,7 @@ fn find_differ_by_one<S: AsRef<[u8]>, T: AsRef<[S]>>(input: &T) -> Option<Vec<u8
     for i in input.as_ref() {
         for j in input.as_ref() {
             /* Since i and j have the type &S, they aren't usable as slices until we force them to
-               be &[u8]. */
+            be &[u8]. */
             let i = i.as_ref();
             let j = j.as_ref();
 
