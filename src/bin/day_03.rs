@@ -24,7 +24,7 @@ fn parse_claim(input: &str) -> Option<Claim> {
                 >> tag!(":")
                 >> width: digit
                 >> tag!("x")
-                >> height: dbg_dmp!(digit)
+                >> height: digit
                 >> (Claim {
                     id: id.parse::<usize>().expect("parse digits"),
                     left: left.parse::<usize>().expect("parse digits"),
@@ -34,7 +34,6 @@ fn parse_claim(input: &str) -> Option<Claim> {
                 })
         )
     );
-    println!("{:?}", parsed);
     parsed.ok().map(|(_rest, result)| result)
 }
 
