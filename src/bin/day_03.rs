@@ -37,7 +37,7 @@ fn parse_claim(input: &str) -> Option<Claim> {
     parsed.ok().map(|(_rest, result)| result)
 }
 
-fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
+fn count_claims<T: AsRef<[Claim]>>(input: &T) -> Vec<Vec<usize>> {
     use std::cmp::max;
     let (width, height) = input.as_ref().iter().fold((0, 0), |(w, h), claim| {
         (
@@ -56,9 +56,13 @@ fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
         }
     }
 
+    counts
+}
+
+fn count_overlapping(counts: &Vec<Vec<usize>>) -> usize {
     let mut count = 0;
-    for i in 0..width {
-        for j in 0..height {
+    for i in 0..counts.len() {
+        for j in 0..counts[0].len() {
             if counts[i][j] > 1 {
                 count += 1;
             }
@@ -68,26 +72,16 @@ fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
     count
 }
 
-fn above_or_left(a: &Claim, b: &Claim) -> bool {
-    if a.top + a.height <= b.top || a.left + a.width <= b.left {
-        return true;
-    }
-    false
-}
-
-fn intersects(a: &Claim, b: &Claim) -> bool {
-    !(above_or_left(a, b) || above_or_left(b, a))
-}
-
-fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T) -> Option<usize> {
-    for i in input.as_ref() {
-        if input
-            .as_ref()
-            .iter()
-            .all(|j| !intersects(i, j) || i.id == j.id)
-        {
-            return Some(i.id);
+fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T, counts: &Vec<Vec<usize>>) -> Option<usize> {
+    'candidate: for i in input.as_ref() {
+        for x in i.left..i.left + i.width {
+            for y in i.top..i.top + i.height {
+                if counts[x][y] > 1 {
+                    continue 'candidate;
+                }
+            }
         }
+        return Some(i.id);
     }
     None
 }
@@ -103,8 +97,9 @@ fn main() {
         .map(|l| parse_claim(&l.unwrap()).expect("input was well-formed"))
         .collect();
 
-    println!("Overlapping squares: {}", count_overlapping(&claims));
-    find_nonoverlapping(&claims).map(|i| println!("Nonoverlapping id: {}", i));
+    let counts = count_claims(&claims);
+    println!("Overlapping squares: {}", count_overlapping(&counts));
+    find_nonoverlapping(&claims, &counts).map(|i| println!("Nonoverlapping id: {}", i));
 }
 
 #[test]
@@ -149,94 +144,7 @@ fn example() {
         parse_claim("#3 @ 5,5: 2x2").unwrap(),
     ];
 
-    assert_eq!(count_overlapping(&claims), 4);
-    assert_eq!(find_nonoverlapping(&claims), Some(3));
-}
-
-#[test]
-fn broke_it() {
-    assert!(intersects(
-        &Claim {
-            id: 881,
-            top: 316,
-            left: 337,
-            height: 11,
-            width: 23,
-        },
-        &Claim {
-            id: 6,
-            top: 304,
-            left: 347,
-            height: 24,
-            width: 17,
-        }
-    ));
-    assert!(intersects(
-        &Claim {
-            id: 6,
-            top: 304,
-            left: 347,
-            height: 24,
-            width: 17,
-        },
-        &Claim {
-            id: 881,
-            top: 316,
-            left: 337,
-            height: 11,
-            width: 23,
-        }
-    ));
-    assert!(intersects(
-        &Claim {
-            id: 881,
-            left: 316,
-            top: 337,
-            width: 11,
-            height: 23,
-        },
-        &Claim {
-            id: 6,
-            left: 304,
-            top: 347,
-            width: 24,
-            height: 17,
-        }
-    ));
-    assert!(intersects(
-        &Claim {
-            id: 6,
-            left: 304,
-            top: 347,
-            width: 24,
-            height: 17,
-        },
-        &Claim {
-            id: 881,
-            left: 316,
-            top: 337,
-            width: 11,
-            height: 23,
-        },
-    ));
-}
-
-#[test]
-fn broke_again() {
-    assert!(intersects(
-        &Claim {
-            id: 40,
-            top: 382,
-            left: 506,
-            height: 13,
-            width: 24
-        },
-        &Claim {
-            id: 244,
-            top: 379,
-            left: 515,
-            height: 21,
-            width: 11
-        }
-    ));
+    let counts = count_claims(&claims);
+    assert_eq!(count_overlapping(&counts), 4);
+    assert_eq!(find_nonoverlapping(&claims, &counts), Some(3));
 }
