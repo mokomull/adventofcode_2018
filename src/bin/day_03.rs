@@ -72,7 +72,7 @@ fn in_range(x: usize, lower: usize, upper: usize) -> bool {
     x >= lower && x < upper
 }
 
-fn intersects(a: &Claim, b: &Claim) -> bool {
+fn corner_in(a: &Claim, b: &Claim) -> bool {
     /* compare the four corners of a with b's dimensions */
 
     /* top left */
@@ -90,6 +90,10 @@ fn intersects(a: &Claim, b: &Claim) -> bool {
         return true;
     }
     false
+}
+
+fn intersects(a: &Claim, b: &Claim) -> bool {
+    corner_in(a, b) || corner_in(b, a)
 }
 
 fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T) -> Option<usize> {
