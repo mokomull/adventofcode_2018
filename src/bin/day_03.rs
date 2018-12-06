@@ -68,6 +68,20 @@ fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
     count
 }
 
+fn main() {
+    use std::io::BufRead;
+
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    let claims: Vec<_> = lock
+        .lines()
+        .map(|l| parse_claim(&l.unwrap()).expect("input was well-formed"))
+        .collect();
+
+    println!("Overlapping squares: {}", count_overlapping(&claims));
+}
+
 #[test]
 fn test_parse() {
     assert_eq!(
