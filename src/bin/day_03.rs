@@ -237,3 +237,23 @@ fn broke_it() {
         },
     ));
 }
+
+#[test]
+fn broke_again() {
+    assert!(intersects(
+        &Claim {
+            id: 40,
+            top: 382,
+            left: 506,
+            height: 13,
+            width: 24
+        },
+        &Claim {
+            id: 244,
+            top: 379,
+            left: 515,
+            height: 21,
+            width: 11
+        }
+    ));
+}
