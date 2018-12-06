@@ -37,6 +37,37 @@ fn parse_claim(input: &str) -> Option<Claim> {
     parsed.ok().map(|(_rest, result)| result)
 }
 
+fn count_overlapping<T: AsRef<[Claim]>>(input: &T) -> usize {
+    use std::cmp::max;
+    let (width, height) = input.as_ref().iter().fold((0, 0), |(w, h), claim| {
+        (
+            max(w, claim.left + claim.width),
+            max(h, claim.top + claim.height),
+        )
+    });
+
+    let mut counts = vec![vec![0; width]; height];
+
+    for claim in input.as_ref() {
+        for i in claim.left..claim.left + claim.width {
+            for j in claim.top..claim.top + claim.height {
+                counts[i][j] += 1;
+            }
+        }
+    }
+
+    let mut count = 0;
+    for i in 0..width {
+        for j in 0..height {
+            if counts[i][j] > 1 {
+                count += 1;
+            }
+        }
+    }
+
+    count
+}
+
 #[test]
 fn test_parse() {
     assert_eq!(
@@ -69,4 +100,15 @@ fn test_parse() {
             height: 2
         })
     );
+}
+
+#[test]
+fn example() {
+    let claims = vec![
+        parse_claim("#1 @ 1,3: 4x4").unwrap(),
+        parse_claim("#2 @ 3,1: 4x4").unwrap(),
+        parse_claim("#3 @ 5,5: 2x2").unwrap(),
+    ];
+
+    assert_eq!(count_overlapping(&claims), 4);
 }

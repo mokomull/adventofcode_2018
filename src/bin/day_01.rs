@@ -10,8 +10,7 @@ fn main() {
             line.expect("file should be readable")
                 .parse::<i64>()
                 .expect("file should contain integers")
-        })
-        .collect();
+        }).collect();
 
     let frequency: i64 = data.iter().sum();
 
