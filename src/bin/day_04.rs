@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[macro_use]
 extern crate nom;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum Action {
     BeginShift(usize),
     FallAsleep,
@@ -11,7 +11,7 @@ enum Action {
 }
 use Action::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Record {
     date: (usize, usize, usize),
     hour: usize,
@@ -112,6 +112,17 @@ fn most_asleep_guard<'a, T: Iterator<Item = &'a Record>>(input: T) -> usize {
     most_asleep_guard * most_asleep_minute
 }
 
+fn main() {
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    let mut records: Vec<_> = lock.lines().map(|l| parse_record(&l.unwrap())).collect();
+    records.sort();
+
+    println!("guard * minute = {}", most_asleep_guard(records.iter()));
+}
+
 #[test]
 fn test_parse() {
     assert_eq!(
@@ -166,4 +177,26 @@ fn example() {
     ];
 
     assert_eq!(most_asleep_guard(input.iter()), 240);
+
+    let mut random_input = vec![
+        parse_record("[1518-11-05 00:45] falls asleep"),
+        parse_record("[1518-11-03 00:05] Guard #10 begins shift"),
+        parse_record("[1518-11-01 00:30] falls asleep"),
+        parse_record("[1518-11-05 00:03] Guard #99 begins shift"),
+        parse_record("[1518-11-01 00:00] Guard #10 begins shift"),
+        parse_record("[1518-11-03 00:24] falls asleep"),
+        parse_record("[1518-11-02 00:40] falls asleep"),
+        parse_record("[1518-11-04 00:36] falls asleep"),
+        parse_record("[1518-11-01 00:25] wakes up"),
+        parse_record("[1518-11-01 00:55] wakes up"),
+        parse_record("[1518-11-05 00:55] wakes up"),
+        parse_record("[1518-11-03 00:29] wakes up"),
+        parse_record("[1518-11-04 00:02] Guard #99 begins shift"),
+        parse_record("[1518-11-02 00:50] wakes up"),
+        parse_record("[1518-11-04 00:46] wakes up"),
+        parse_record("[1518-11-01 00:05] falls asleep"),
+        parse_record("[1518-11-01 23:58] Guard #99 begins shift"),
+    ];
+    random_input.sort();
+    assert_eq!(most_asleep_guard(random_input.iter()), 240);
 }
