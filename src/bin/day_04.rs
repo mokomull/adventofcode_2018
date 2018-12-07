@@ -112,6 +112,23 @@ fn most_asleep_guard<'a, T: Iterator<Item = &'a Record>>(input: T) -> usize {
     most_asleep_guard * most_asleep_minute
 }
 
+fn most_asleep_guard_by_minute<'a, T: Iterator<Item = &'a Record>>(input: T) -> usize {
+    let guards = asleep_minutes(input);
+
+    let (most_asleep_guard, minutes) = guards
+        .iter()
+        .max_by_key(|(&guard, &minutes)| minutes.iter().max().unwrap().clone())
+        .unwrap();
+    let most_asleep_minute = minutes
+        .iter()
+        .enumerate()
+        .max_by_key(|&(minute, count)| count)
+        .unwrap()
+        .0;
+
+    most_asleep_guard * most_asleep_minute
+}
+
 fn main() {
     use std::io::BufRead;
     let stdin = std::io::stdin();
@@ -120,7 +137,14 @@ fn main() {
     let mut records: Vec<_> = lock.lines().map(|l| parse_record(&l.unwrap())).collect();
     records.sort();
 
-    println!("guard * minute = {}", most_asleep_guard(records.iter()));
+    println!(
+        "most asleep total guard * minute = {}",
+        most_asleep_guard(records.iter())
+    );
+    println!(
+        "most asleep by minute guard * minute = {}",
+        most_asleep_guard_by_minute(records.iter())
+    );
 }
 
 #[test]
