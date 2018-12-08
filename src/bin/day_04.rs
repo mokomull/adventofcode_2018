@@ -19,6 +19,7 @@ struct Record {
     action: Action,
 }
 
+#[allow(clippy::cyclomatic_complexity)]
 fn parse_record(input: &str) -> Record {
     use nom::digit;
 
@@ -78,12 +79,9 @@ fn asleep_minutes<'a, T: Iterator<Item = &'a Record>>(input: T) -> HashMap<usize
                 cur_asleep = Some(i.minute);
             }
             WakeUp => {
-                if !guards.contains_key(&cur_guard.unwrap()) {
-                    guards.insert(cur_guard.unwrap(), [0usize; 60]);
-                }
+                let data = guards.entry(cur_guard.unwrap()).or_insert([0usize; 60]);
 
-                let data = guards.get_mut(&cur_guard.unwrap()).unwrap();
-
+                #[allow(clippy::needless_range_loop)]
                 for m in cur_asleep.unwrap()..i.minute {
                     data[m] += 1
                 }
@@ -118,7 +116,7 @@ fn most_asleep_guard_by_minute<'a, T: Iterator<Item = &'a Record>>(input: T) -> 
 
     let (most_asleep_guard, minutes) = guards
         .iter()
-        .max_by_key(|(&_guard, &minutes)| minutes.iter().max().unwrap().clone())
+        .max_by_key(|(&_guard, &minutes)| *minutes.iter().max().unwrap())
         .unwrap();
     let most_asleep_minute = minutes
         .iter()
