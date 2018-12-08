@@ -100,12 +100,12 @@ fn most_asleep_guard<'a, T: Iterator<Item = &'a Record>>(input: T) -> usize {
 
     let (most_asleep_guard, minutes) = guards
         .iter()
-        .max_by_key(|(&guard, &minutes)| minutes.iter().sum::<usize>())
+        .max_by_key(|(&_guard, &minutes)| minutes.iter().sum::<usize>())
         .unwrap();
     let most_asleep_minute = minutes
         .iter()
         .enumerate()
-        .max_by_key(|&(minute, count)| count)
+        .max_by_key(|&(_minute, count)| count)
         .unwrap()
         .0;
 
@@ -117,12 +117,12 @@ fn most_asleep_guard_by_minute<'a, T: Iterator<Item = &'a Record>>(input: T) -> 
 
     let (most_asleep_guard, minutes) = guards
         .iter()
-        .max_by_key(|(&guard, &minutes)| minutes.iter().max().unwrap().clone())
+        .max_by_key(|(&_guard, &minutes)| minutes.iter().max().unwrap().clone())
         .unwrap();
     let most_asleep_minute = minutes
         .iter()
         .enumerate()
-        .max_by_key(|&(minute, count)| count)
+        .max_by_key(|&(_minute, count)| count)
         .unwrap()
         .0;
 
