@@ -56,7 +56,8 @@ fn parse_record(input: &str) -> Record {
                     action: action,
                 })
         )
-    ).expect("well-formed input")
+    )
+    .expect("well-formed input")
     .1
 }
 
