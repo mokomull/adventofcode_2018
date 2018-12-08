@@ -1,3 +1,5 @@
+#![allow(clippy::needless_range_loop)]
+
 #[macro_use]
 extern crate nom;
 
@@ -10,6 +12,7 @@ struct Claim {
     height: usize,
 }
 
+#[allow(clippy::cyclomatic_complexity)]
 fn parse_claim(input: &str) -> Option<Claim> {
     use nom::digit;
     let parsed = ws!(
@@ -59,7 +62,7 @@ fn count_claims<T: AsRef<[Claim]>>(input: &T) -> Vec<Vec<usize>> {
     counts
 }
 
-fn count_overlapping(counts: &Vec<Vec<usize>>) -> usize {
+fn count_overlapping(counts: &[Vec<usize>]) -> usize {
     let mut count = 0;
     for i in 0..counts.len() {
         for j in 0..counts[0].len() {
@@ -72,7 +75,7 @@ fn count_overlapping(counts: &Vec<Vec<usize>>) -> usize {
     count
 }
 
-fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T, counts: &Vec<Vec<usize>>) -> Option<usize> {
+fn find_nonoverlapping<T: AsRef<[Claim]>>(input: &T, counts: &[Vec<usize>]) -> Option<usize> {
     'candidate: for i in input.as_ref() {
         for x in i.left..i.left + i.width {
             for y in i.top..i.top + i.height {
@@ -99,7 +102,9 @@ fn main() {
 
     let counts = count_claims(&claims);
     println!("Overlapping squares: {}", count_overlapping(&counts));
-    find_nonoverlapping(&claims, &counts).map(|i| println!("Nonoverlapping id: {}", i));
+    if let Some(i) = find_nonoverlapping(&claims, &counts) {
+        println!("Nonoverlapping id: {}", i);
+    }
 }
 
 #[test]
