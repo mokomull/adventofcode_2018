@@ -42,6 +42,19 @@ fn main() {
 
     let result = remove_all(std::str::from_utf8(&input).unwrap().trim_end());
     println!("{} units left", result.len());
+
+    let shortest = (b'a'..=b'z')
+        .map(|to_remove| {
+            let removed: Vec<u8> = input
+                .iter()
+                .cloned()
+                .filter(|i| i.to_ascii_lowercase() != to_remove)
+                .collect();
+            remove_all(std::str::from_utf8(&removed).unwrap().trim_end())
+        })
+        .min_by_key(|i| i.len())
+        .unwrap();
+    println!("Shortest by removing a character: {}", shortest.len());
 }
 
 #[test]
