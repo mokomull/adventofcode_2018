@@ -33,6 +33,17 @@ fn remove_all(input: &str) -> String {
     String::from_utf8(result.unwrap_err()).unwrap()
 }
 
+fn main() {
+    let stdin = std::io::stdin();
+    let mut lock = stdin.lock();
+
+    let mut input = Vec::new();
+    std::io::Read::read_to_end(&mut lock, &mut input).expect("read from stdin failed");
+
+    let result = remove_all(std::str::from_utf8(&input).unwrap().trim_end());
+    println!("{} units left", result.len());
+}
+
 #[test]
 fn example() {
     assert_eq!(remove_all("dabAcCaCBAcCcaDA"), "dabCBAcaDA");
