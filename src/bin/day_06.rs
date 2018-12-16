@@ -63,6 +63,26 @@ fn largest_area(placed: &Vec<Vec<Option<usize>>>) -> usize {
     *areas.values().max().unwrap_or(&0)
 }
 
+fn main() {
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    let input: Vec<(usize, usize)> = lock
+        .lines()
+        .map(|line| {
+            let l = line.unwrap();
+            (
+                l.split(",").nth(0).unwrap().parse::<usize>().unwrap(),
+                l.split(" ").nth(1).unwrap().parse::<usize>().unwrap(),
+            )
+        })
+        .collect();
+
+    let placed = place(&input);
+    println!("Area: {}", largest_area(&placed));
+}
+
 #[test]
 fn example_place() {
     let input = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
