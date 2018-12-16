@@ -24,8 +24,8 @@ fn place(input: &[(usize, usize)]) -> Vec<Vec<Option<usize>>> {
                 continue;
             }
 
-            if distances.len() > 0 {
-                board[y][x] = Some(distances[0].0);
+            if let Some(cell) = distances.get(0) {
+                board[y][x] = Some(cell.0);
             }
         }
     }
@@ -33,7 +33,7 @@ fn place(input: &[(usize, usize)]) -> Vec<Vec<Option<usize>>> {
     board
 }
 
-fn largest_area(placed: &Vec<Vec<Option<usize>>>) -> usize {
+fn largest_area(placed: &[Vec<Option<usize>>]) -> usize {
     let mut areas = std::collections::HashMap::new();
 
     for col in placed {
@@ -99,8 +99,8 @@ fn main() {
         .map(|line| {
             let l = line.unwrap();
             (
-                l.split(",").nth(0).unwrap().parse::<usize>().unwrap(),
-                l.split(" ").nth(1).unwrap().parse::<usize>().unwrap(),
+                l.split(',').nth(0).unwrap().parse::<usize>().unwrap(),
+                l.split(' ').nth(1).unwrap().parse::<usize>().unwrap(),
             )
         })
         .collect();
