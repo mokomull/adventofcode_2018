@@ -34,11 +34,42 @@ fn place(input: &[(usize, usize)]) -> Vec<Vec<Option<usize>>> {
     board
 }
 
+fn largest_area(placed: &Vec<Vec<Option<usize>>>) -> usize {
+    let mut areas = std::collections::HashMap::new();
+
+    for col in placed {
+        for cell in col {
+            *areas.entry(cell).or_insert(0) += 1;
+        }
+    }
+
+    // Remove all areas that are on the edges of the board -- these are the ones that extend to infinity.
+    for cell in placed.first().unwrap_or(&vec![]) {
+        areas.remove(cell);
+    }
+
+    for cell in placed.last().unwrap_or(&vec![]) {
+        areas.remove(cell);
+    }
+
+    for col in placed {
+        if let Some(cell) = col.first() {
+            areas.remove(cell);
+        }
+        if let Some(cell) = col.last() {
+            areas.remove(cell);
+        }
+    }
+
+    *areas.values().max().unwrap_or(&0)
+}
+
 #[test]
 fn example_place() {
     let input = vec![(1, 1), (1, 6), (8, 3), (3, 4), (5, 5), (8, 9)];
+    let placed = place(&input);
     assert_eq!(
-        place(&input),
+        placed,
         vec![
             vec![
                 Some(0),
@@ -151,5 +182,7 @@ fn example_place() {
                 Some(5)
             ]
         ]
-    )
+    );
+
+    assert_eq!(largest_area(&placed), 17);
 }
