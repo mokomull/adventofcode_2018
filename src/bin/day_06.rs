@@ -63,6 +63,32 @@ fn largest_area(placed: &Vec<Vec<Option<usize>>>) -> usize {
     *areas.values().max().unwrap_or(&0)
 }
 
+fn within_limit(input: &[(usize, usize)], limit: usize) -> usize {
+    let (max_x, max_y) = input
+        .iter()
+        .fold((0, 0), |(old_max_x, old_max_y), &(x, y)| {
+            (max(x, old_max_x), max(y, old_max_y))
+        });
+
+    let mut count = 0;
+
+    for x in 0..=max_x {
+        for y in 0..=max_y {
+            let total: isize = input
+                .iter()
+                .map(|&(other_x, other_y)| {
+                    (other_x as isize - x as isize).abs() + (other_y as isize - y as isize).abs()
+                })
+                .sum();
+            if (total as usize) < limit {
+                count += 1;
+            }
+        }
+    }
+
+    count
+}
+
 fn main() {
     use std::io::BufRead;
     let stdin = std::io::stdin();
@@ -204,4 +230,6 @@ fn example_place() {
     );
 
     assert_eq!(largest_area(&placed), 17);
+
+    assert_eq!(within_limit(&input, 32), 16);
 }
