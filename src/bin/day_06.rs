@@ -107,6 +107,7 @@ fn main() {
 
     let placed = place(&input);
     println!("Area: {}", largest_area(&placed));
+    println!("Within 10000 units: {}", within_limit(&input, 10000));
 }
 
 #[test]
