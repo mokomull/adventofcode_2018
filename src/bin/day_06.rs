@@ -19,7 +19,6 @@ fn place(input: &[(usize, usize)]) -> Vec<Vec<Option<usize>>> {
                 .enumerate()
                 .collect();
             distances.sort_by_key(|&(_, distance)| distance);
-            println!("{}, {} => {:?}", x, y, distances);
 
             if distances.len() > 1 && distances[0].1 == distances[1].1 {
                 continue;
