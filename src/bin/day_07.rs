@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate nom;
 
+use std::collections::{BTreeSet, HashSet};
+
 fn parse_input(input: &[u8]) -> (u8, u8) {
     do_parse!(
         nom::types::CompleteByteSlice(input),
@@ -15,13 +17,16 @@ fn parse_input(input: &[u8]) -> (u8, u8) {
     .1
 }
 
-fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
-    use std::collections::{BTreeSet, HashSet};
-    let mut to_visit: BTreeSet<u8> = edges
+fn all_nodes(edges: &[(u8, u8)]) -> BTreeSet<u8> {
+    edges
         .iter()
         .flat_map(|&(from, to)| vec![from, to])
-        .collect();
-    let mut completed: std::collections::HashSet<u8> = HashSet::new();
+        .collect()
+}
+
+fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
+    let mut to_visit = all_nodes(edges);
+    let mut completed: HashSet<u8> = HashSet::new();
     let mut order: Vec<u8> = Vec::new();
 
     while !to_visit.is_empty() {
@@ -41,6 +46,47 @@ fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
     }
 
     order
+}
+
+fn count_ticks(edges: &[(u8, u8)], surcharge: usize) -> usize {
+    let mut tick = 0;
+    let mut deadlines: [(u8, usize); 2] = [(0, 0), (0, 0)];
+    let mut to_visit = all_nodes(&edges);
+    let mut completed: HashSet<u8> = HashSet::new();
+
+    while !to_visit.is_empty() {
+        let available = deadlines
+            .iter_mut()
+            .filter(move |&&mut (_node, deadline)| deadline <= tick);
+
+        for i in available {
+            completed.insert(i.0);
+            // must handle to_visit being empty since we may run this loop multiple times, unlike in topological_sort().
+            let maybe_this = to_visit
+                .iter()
+                .filter(|&&v| {
+                    edges
+                        .iter()
+                        .all(|&(from, to)| to != v || completed.contains(&from))
+                })
+                .next()
+                .cloned();
+            if let Some(this) = maybe_this {
+                let new_deadline = tick + surcharge + (this - b'A') as usize + 1;
+                to_visit.remove(&this);
+                *i = (this, new_deadline);
+            }
+        }
+
+        tick += 1;
+    }
+
+    // tick is the tick where started the last work item, so we need to compute when it will finish
+    deadlines
+        .iter()
+        .max_by_key(|&(_node, deadline)| deadline)
+        .unwrap()
+        .1
 }
 
 fn main() {
@@ -74,4 +120,6 @@ fn examples() {
     assert_eq!(output[1], (b'C', b'F'));
 
     assert_eq!(topological_sort(&output), b"CABDFE");
+
+    assert_eq!(count_ticks(&output, 0), 15);
 }
