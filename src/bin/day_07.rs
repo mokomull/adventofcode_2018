@@ -43,6 +43,21 @@ fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
     order
 }
 
+fn main() {
+    use std::io::BufRead;
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    let input: Vec<_> = lock
+        .lines()
+        .map(|l| parse_input(l.unwrap().as_bytes()))
+        .collect();
+    println!(
+        "Order: {}",
+        std::str::from_utf8(&topological_sort(&input)).unwrap()
+    );
+}
+
 #[test]
 fn examples() {
     let input = [
