@@ -27,15 +27,28 @@ fn sum_all_metadata(tree: &[usize]) -> usize {
     sum
 }
 
-fn parse(input: &[u8]) -> Vec<usize> {
+fn parse(input: &str) -> Vec<usize> {
     input
-        .split(|&i| i == b' ')
-        .map(|i| std::str::from_utf8(i).unwrap().parse::<usize>().unwrap())
+        .split_whitespace()
+        .map(|i| i.parse::<usize>().unwrap())
         .collect()
+}
+
+fn main() {
+    use std::io::Read;
+    let stdin = std::io::stdin();
+    let mut lock = stdin.lock();
+
+    let mut v = vec![];
+    lock.read_to_end(&mut v).unwrap();
+    let raw_input = String::from_utf8(v).unwrap();
+    let input = parse(raw_input.trim());
+
+    print!("Sum is {}", sum_all_metadata(&input));
 }
 
 #[test]
 fn examples() {
-    let input = parse(b"2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2");
+    let input = parse("2 3 0 3 10 11 12 1 1 0 1 99 2 1 1 2");
     assert_eq!(sum_all_metadata(&input), 138);
 }
