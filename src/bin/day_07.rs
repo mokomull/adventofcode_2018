@@ -30,16 +30,14 @@ fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
     let mut order: Vec<u8> = Vec::new();
 
     while !to_visit.is_empty() {
-        let this = to_visit
+        let this = *to_visit
             .iter()
-            .filter(|&&v| {
+            .find(|&&v| {
                 edges
                     .iter()
                     .all(|&(from, to)| to != v || completed.contains(&from))
             })
-            .next()
-            .unwrap()
-            .clone();
+            .unwrap();
         completed.insert(this);
         order.push(this);
         to_visit.remove(&this);
@@ -64,12 +62,11 @@ fn count_ticks(edges: &[(u8, u8)], workers: usize, surcharge: usize) -> usize {
             // must handle to_visit being empty since we may run this loop multiple times, unlike in topological_sort().
             let maybe_this = to_visit
                 .iter()
-                .filter(|&&v| {
+                .find(|&&v| {
                     edges
                         .iter()
                         .all(|&(from, to)| to != v || completed.contains(&from))
                 })
-                .next()
                 .cloned();
             if let Some(this) = maybe_this {
                 let new_deadline = tick + surcharge + (this - b'A') as usize + 1;
