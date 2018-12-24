@@ -48,9 +48,9 @@ fn topological_sort(edges: &[(u8, u8)]) -> Vec<u8> {
     order
 }
 
-fn count_ticks(edges: &[(u8, u8)], surcharge: usize) -> usize {
+fn count_ticks(edges: &[(u8, u8)], workers: usize, surcharge: usize) -> usize {
     let mut tick = 0;
-    let mut deadlines: [(u8, usize); 2] = [(0, 0), (0, 0)];
+    let mut deadlines = vec![(0, 0); workers];
     let mut to_visit = all_nodes(&edges);
     let mut completed: HashSet<u8> = HashSet::new();
 
@@ -102,6 +102,8 @@ fn main() {
         "Order: {}",
         std::str::from_utf8(&topological_sort(&input)).unwrap()
     );
+
+    println!("It would take {} seconds", count_ticks(&input, 5, 60));
 }
 
 #[test]
@@ -121,5 +123,5 @@ fn examples() {
 
     assert_eq!(topological_sort(&output), b"CABDFE");
 
-    assert_eq!(count_ticks(&output, 0), 15);
+    assert_eq!(count_ticks(&output, 2, 0), 15);
 }
