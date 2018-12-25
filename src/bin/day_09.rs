@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate nom;
+
 fn highest_score(players: usize, last_marble: usize) -> usize {
     let mut scores = vec![0; players];
     let mut marbles = vec![0];
@@ -18,6 +21,34 @@ fn highest_score(players: usize, last_marble: usize) -> usize {
     }
 
     *scores.iter().max().unwrap()
+}
+
+fn main() {
+    use nom::digit;
+    use std::io::BufRead;
+
+    let stdin = std::io::stdin();
+    let lock = stdin.lock();
+
+    let input = lock.lines().next().unwrap().unwrap();
+    let (players, last_marble) = do_parse!(
+        nom::types::CompleteStr(&input),
+        players: digit
+            >> tag!(&" players; last marble is worth ")
+            >> last_marble: digit
+            >> tag!(&" points")
+            >> ((
+                players.parse::<usize>().unwrap(),
+                last_marble.parse::<usize>().unwrap()
+            ))
+    )
+    .unwrap()
+    .1;
+
+    println!(
+        "The highest player scored {}",
+        highest_score(players, last_marble)
+    );
 }
 
 #[test]
