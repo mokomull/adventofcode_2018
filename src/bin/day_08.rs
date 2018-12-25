@@ -61,7 +61,8 @@ fn main() {
     let raw_input = String::from_utf8(v).unwrap();
     let input = parse(raw_input.trim());
 
-    print!("Sum is {}", sum_all_metadata(&input));
+    println!("Sum is {}", sum_all_metadata(&input));
+    println!("Value of the root is {}", calculate_value(&input));
 }
 
 #[test]
