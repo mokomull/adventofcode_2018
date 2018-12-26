@@ -55,6 +55,11 @@ fn main() {
         "The highest player scored {}",
         highest_score(players, last_marble)
     );
+
+    println!(
+        "The highest player with 100x marbles would score {}",
+        highest_score(players, last_marble * 100)
+    );
 }
 
 #[test]
