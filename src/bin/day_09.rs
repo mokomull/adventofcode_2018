@@ -3,19 +3,26 @@ extern crate nom;
 
 fn highest_score(players: usize, last_marble: usize) -> usize {
     let mut scores = vec![0; players];
-    let mut marbles = vec![0];
-    let mut current = 0;
+    // the first element in marbles is always the "current" marble.
+    let mut marbles = std::collections::VecDeque::new();
+    marbles.push_back(0);
     let mut player = 0;
 
     for i in 1..=last_marble {
         if i % 23 == 0 {
-            current = (current + marbles.len() - 7) % marbles.len();
+            let tail: Vec<usize> = (0..6).filter_map(|_| marbles.pop_back()).collect();
+            scores[player] += marbles.pop_back().unwrap();
             scores[player] += i;
-            scores[player] += marbles.remove(current);
-            current %= marbles.len();
+            for x in tail {
+                marbles.push_front(x);
+            }
         } else {
-            current = (current + 2) % marbles.len();
-            marbles.insert(current, i);
+            let index = 2 % marbles.len();
+            let mut tail = marbles.split_off(index);
+            // we want the resulting marbles to be [tail, first two], but split_off leaves [first two] in the original vector.
+            std::mem::swap(&mut marbles, &mut tail);
+            marbles.append(&mut tail);
+            marbles.push_front(i);
         }
         player = (player + 1) % players;
     }
