@@ -17,12 +17,11 @@ fn highest_score(players: usize, last_marble: usize) -> usize {
                 marbles.push_front(x);
             }
         } else {
-            let index = 2 % marbles.len();
-            let mut tail = marbles.split_off(index);
-            // we want the resulting marbles to be [tail, first two], but split_off leaves [first two] in the original vector.
-            std::mem::swap(&mut marbles, &mut tail);
-            marbles.append(&mut tail);
+            let head: Vec<usize> = (0..2).filter_map(|_| marbles.pop_front()).collect();
             marbles.push_front(i);
+            for x in head {
+                marbles.push_back(x);
+            }
         }
         player = (player + 1) % players;
     }
