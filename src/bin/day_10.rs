@@ -2,7 +2,7 @@
 extern crate nom;
 use nom::{digit, space};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Hash, PartialEq, Eq)]
 struct Point(isize, isize);
 
 impl std::ops::Add for Point {
@@ -55,6 +55,71 @@ fn parse(input: &str) -> Star {
     )
     .unwrap()
     .1
+}
+
+fn can_render(input: &[Star]) -> bool {
+    use std::cmp::{max, min};
+
+    let (min_x, max_x, min_y, max_y) = input.iter().fold(
+        (0, 0, 0, 0),
+        |(old_min_x, old_max_x, old_min_y, old_max_y), star| {
+            (
+                min(old_min_x, star.position.0),
+                max(old_max_x, star.position.0),
+                min(old_min_y, star.position.1),
+                max(old_max_y, star.position.1),
+            )
+        },
+    );
+
+    min_x > -50 && max_x < 50 && min_y > -20 && max_y < 20
+}
+
+fn advance(input: &mut [Star]) {
+    for x in input {
+        x.position = x.position + x.velocity;
+    }
+}
+
+fn render(input: &[Star]) {
+    let stars: std::collections::HashSet<Point> = input.iter().map(|x| x.position).collect();
+
+    for y in -20..20 {
+        for x in -50..50 {
+            if stars.contains(&Point(x, y)) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
+    }
+}
+
+fn main() {
+    let stdin = std::io::stdin();
+    let mut lock = stdin.lock();
+    let option = std::env::args().nth(1).unwrap();
+
+    let mut input: Vec<Star> = if "example" == option {
+        EXAMPLE.iter().map(|&l| parse(l)).collect()
+    } else {
+        let input = std::fs::File::open(option).unwrap();
+        let reader = std::io::BufReader::new(input);
+        std::io::BufRead::lines(reader)
+            .map(|l| parse(&l.unwrap()))
+            .collect()
+    };
+
+    loop {
+        while !can_render(&input) {
+            advance(&mut input);
+        }
+        render(&input);
+        let mut _junk = String::new();
+        std::io::BufRead::read_line(&mut lock, &mut _junk).unwrap();
+        advance(&mut input);
+    }
 }
 
 const EXAMPLE: &[&str] = &[
