@@ -57,10 +57,9 @@ fn parse(input: &str) -> Star {
     .1
 }
 
-fn can_render(input: &[Star]) -> bool {
+fn extrema(input: &[Star]) -> (isize, isize, isize, isize) {
     use std::cmp::{max, min};
-
-    let (min_x, max_x, min_y, max_y) = input.iter().fold(
+    input.iter().fold(
         (0, 0, 0, 0),
         |(old_min_x, old_max_x, old_min_y, old_max_y), star| {
             (
@@ -70,9 +69,13 @@ fn can_render(input: &[Star]) -> bool {
                 max(old_max_y, star.position.1),
             )
         },
-    );
+    )
+}
 
-    min_x > -50 && max_x < 50 && min_y > -20 && max_y < 20
+fn can_render(input: &[Star]) -> bool {
+    let (min_x, max_x, min_y, max_y) = extrema(input);
+
+    (max_x - min_x) < 100 && (max_y - min_y) < 40
 }
 
 fn advance(input: &mut [Star]) {
@@ -83,9 +86,10 @@ fn advance(input: &mut [Star]) {
 
 fn render(input: &[Star]) {
     let stars: std::collections::HashSet<Point> = input.iter().map(|x| x.position).collect();
+    let (min_x, max_x, min_y, max_y) = extrema(input);
 
-    for y in -20..20 {
-        for x in -50..50 {
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
             if stars.contains(&Point(x, y)) {
                 print!("#");
             } else {
