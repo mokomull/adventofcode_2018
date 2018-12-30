@@ -9,7 +9,7 @@ enum Action {
     FallAsleep,
     WakeUp,
 }
-use Action::*;
+use self::Action::*;
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct Record {
