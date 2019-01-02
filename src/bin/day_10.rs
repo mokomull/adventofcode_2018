@@ -130,17 +130,20 @@ fn main() {
 
     let mut closest = input.to_vec();
     let mut perimiter = std::isize::MAX;
-    for _ in 0..1_000_000 {
+    let mut when = 0;
+    for i in 0..1_000_000 {
         let (min_x, max_x, min_y, max_y) = extrema(&input);
         let this = max_x - min_x + max_y - min_y;
         if this < perimiter {
             perimiter = this;
             closest = input.to_vec();
+            when = i;
         }
         advance(&mut input);
     }
 
     render(&closest);
+    println!("This occurred after {} seconds", when);
 }
 
 const EXAMPLE: &[&str] = &[
