@@ -1,3 +1,5 @@
+use std::cmp::{max, min};
+
 #[macro_use]
 extern crate nom;
 use nom::{digit, space};
@@ -12,7 +14,7 @@ impl std::ops::Add for Point {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct Star {
     position: Point,
     velocity: Point,
@@ -58,9 +60,13 @@ fn parse(input: &str) -> Star {
 }
 
 fn extrema(input: &[Star]) -> (isize, isize, isize, isize) {
-    use std::cmp::{max, min};
     input.iter().fold(
-        (0, 0, 0, 0),
+        (
+            std::isize::MAX,
+            std::isize::MIN,
+            std::isize::MAX,
+            std::isize::MIN,
+        ),
         |(old_min_x, old_max_x, old_min_y, old_max_y), star| {
             (
                 min(old_min_x, star.position.0),
@@ -72,12 +78,6 @@ fn extrema(input: &[Star]) -> (isize, isize, isize, isize) {
     )
 }
 
-fn can_render(input: &[Star]) -> bool {
-    let (min_x, max_x, min_y, max_y) = extrema(input);
-
-    (max_x - min_x) < 100 && (max_y - min_y) < 40
-}
-
 fn advance(input: &mut [Star]) {
     for x in input {
         x.position = x.position + x.velocity;
@@ -85,12 +85,27 @@ fn advance(input: &mut [Star]) {
 }
 
 fn render(input: &[Star]) {
-    let stars: std::collections::HashSet<Point> = input.iter().map(|x| x.position).collect();
+    let mut sky = vec![vec![false; 80]; 20];
     let (min_x, max_x, min_y, max_y) = extrema(input);
 
-    for y in min_y..=max_y {
-        for x in min_x..=max_x {
-            if stars.contains(&Point(x, y)) {
+    let &scale_factor = [1, (max_x - min_x) / 80, (max_y - min_y) / 20]
+        .iter()
+        .max()
+        .unwrap();
+
+    for star in input {
+        let Point(x, y) = star.position;
+        let row = (y - min_y) / scale_factor;
+        let column = (x - min_x) / scale_factor;
+        if row < 0 || row > 19 || column < 0 || column > 79 {
+            continue;
+        }
+        sky[row as usize][column as usize] = true;
+    }
+
+    for row in &sky {
+        for cell in row {
+            if *cell {
                 print!("#");
             } else {
                 print!(".");
@@ -101,8 +116,6 @@ fn render(input: &[Star]) {
 }
 
 fn main() {
-    let stdin = std::io::stdin();
-    let mut lock = stdin.lock();
     let option = std::env::args().nth(1).unwrap();
 
     let mut input: Vec<Star> = if "example" == option {
@@ -115,15 +128,19 @@ fn main() {
             .collect()
     };
 
-    loop {
-        while !can_render(&input) {
-            advance(&mut input);
+    let mut closest = input.to_vec();
+    let mut perimiter = std::isize::MAX;
+    for _ in 0..1_000_000 {
+        let (min_x, max_x, min_y, max_y) = extrema(&input);
+        let this = max_x - min_x + max_y - min_y;
+        if this < perimiter {
+            perimiter = this;
+            closest = input.to_vec();
         }
-        render(&input);
-        let mut _junk = String::new();
-        std::io::BufRead::read_line(&mut lock, &mut _junk).unwrap();
         advance(&mut input);
     }
+
+    render(&closest);
 }
 
 const EXAMPLE: &[&str] = &[
