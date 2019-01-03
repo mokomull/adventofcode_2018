@@ -25,7 +25,10 @@ fn find_largest(serial: usize, size: usize) -> ((usize, usize), isize) {
 }
 
 fn find_largest_variable(serial: usize) -> (usize, usize, usize) {
-    (1..=300)
+    use rayon::prelude::*;
+
+    (1usize..301)
+        .into_par_iter()
         .map(|size| {
             let ((x, y), power) = find_largest(serial, size);
             ((x, y, size), power)
