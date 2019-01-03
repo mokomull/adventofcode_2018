@@ -8,10 +8,30 @@ fn power_level(serial: usize, x: usize, y: usize) -> isize {
     digit as isize - 5
 }
 
+fn find_largest(serial: usize) -> (usize, usize) {
+    use itertools::Itertools;
+
+    (1..=297)
+        .cartesian_product(1..=297)
+        .map(|(x, y)| {
+            let power = (x..x + 3)
+                .cartesian_product(y..y + 3)
+                .map(|(ix, iy)| power_level(serial, ix, iy))
+                .sum::<isize>();
+            ((x, y), power)
+        })
+        .max_by_key(|&(_, power)| power)
+        .unwrap()
+        .0
+}
+
 #[test]
 fn example() {
     assert_eq!(power_level(8, 3, 5), 4);
     assert_eq!(power_level(57, 122, 79), -5);
     assert_eq!(power_level(39, 217, 196), 0);
     assert_eq!(power_level(71, 101, 153), 4);
+
+    assert_eq!(find_largest(18), (33, 45));
+    assert_eq!(find_largest(42), (21, 61));
 }
