@@ -25,6 +25,14 @@ fn find_largest(serial: usize) -> (usize, usize) {
         .0
 }
 
+fn main() {
+    let input = std::env::args().nth(1).unwrap();
+    let serial = input.parse::<usize>().unwrap();
+    let largest = find_largest(serial);
+
+    println!("The largest total power is at {},{}", largest.0, largest.1);
+}
+
 #[test]
 fn example() {
     assert_eq!(power_level(8, 3, 5), 4);
