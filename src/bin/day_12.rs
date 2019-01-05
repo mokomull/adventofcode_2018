@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate nom;
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Pot {
     Plant,
@@ -7,6 +10,44 @@ enum Pot {
 use self::Pot::*;
 
 type Pattern = [Pot; 5];
+
+named!(pot(nom::types::CompleteByteSlice) -> Pot,
+    alt!(
+        do_parse!(tag!(&b"#"[..]) >> (Plant)) |
+        do_parse!(tag!(&b"."[..]) >> (Empty))
+    )
+);
+
+named!(rule(nom::types::CompleteByteSlice) -> Option<Pattern>,
+    do_parse!(
+        p0: pot >>
+        p1: pot >>
+        p2: pot >>
+        p3: pot >>
+        p4: pot >>
+        tag!(&b" => "[..]) >>
+        result: pot >>
+        (if result == Plant {
+            Some([p0, p1, p2, p3, p4])
+        } else {
+            None
+        })
+    )
+);
+
+named!(input_file(nom::types::CompleteByteSlice) -> (Vec<Pot>, Vec<Pattern>),
+    do_parse!(
+        tag!("initial state: ") >>
+        initial_state: many1!(pot) >>
+        tag!("\n\n") >>
+        rules: ws!(many1!(rule)) >>
+        (
+            initial_state,
+            rules.iter().filter_map(|&x| x).collect()
+        )
+    )
+);
+
 type State = std::collections::VecDeque<Pot>;
 
 fn advance(state: &State, next_generation: &[Pattern]) -> State {
@@ -119,4 +160,27 @@ fn examples() {
     );
 
     assert_eq!(sum_indices_after(&initial_state, &plants_to_keep, 20), 325);
+
+    let (parsed_initial, parsed_rules) = input_file(nom::types::CompleteByteSlice(
+        b"initial state: #..#.#..##......###...###
+
+...## => #
+..#.. => #
+.#... => #
+.#.#. => #
+.#.## => #
+.##.. => #
+.#### => #
+#.#.# => #
+#.### => #
+##.#. => #
+##.## => #
+###.. => #
+###.# => #
+####. => #",
+    ))
+    .unwrap()
+    .1;
+    let parsed_state = parsed_initial.iter().cloned().collect();
+    assert_eq!(sum_indices_after(&parsed_state, &parsed_rules, 20), 325)
 }
