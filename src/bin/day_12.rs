@@ -9,7 +9,7 @@ use self::Pot::*;
 type Pattern = [Pot; 5];
 type State = std::collections::VecDeque<Pot>;
 
-fn advance(state: State, next_generation: &[Pattern]) -> State {
+fn advance(state: &State, next_generation: &[Pattern]) -> State {
     let mut result = State::new();
 
     'cells: for i in 0..state.len() {
@@ -33,9 +33,39 @@ fn advance(state: State, next_generation: &[Pattern]) -> State {
     result
 }
 
+fn sum_indices_after(
+    initial_state: &State,
+    next_generation: &[Pattern],
+    generations: usize,
+) -> isize {
+    let mut state = initial_state.clone();
+    let mut shift = 0;
+
+    for _ in 0..generations {
+        while state[0] == Plant || state[1] == Plant {
+            state.push_front(Empty);
+            shift += 1;
+        }
+        while state[state.len() - 1] == Plant || state[state.len() - 2] == Plant {
+            state.push_back(Empty);
+        }
+        state = advance(&state, next_generation);
+    }
+
+    let mut result = 0;
+
+    for (i, &pot) in state.iter().enumerate() {
+        if pot == Plant {
+            result += i as isize - shift;
+        }
+    }
+
+    result
+}
+
 #[test]
 fn examples() {
-    let mut initial_state: State = [
+    let initial_state: State = [
         Plant, Empty, Empty, Plant, Empty, Plant, Empty, Empty, Plant, Plant, Empty, Empty, Empty,
         Empty, Empty, Empty, Plant, Plant, Plant, Empty, Empty, Empty, Plant, Plant, Plant,
     ]
@@ -43,14 +73,16 @@ fn examples() {
     .cloned()
     .collect();
 
+    let mut extended = initial_state.clone();
+
     for _ in 0..3 {
-        initial_state.push_front(Empty);
+        extended.push_front(Empty);
     }
     for _ in 0..11 {
-        initial_state.push_back(Empty);
+        extended.push_back(Empty);
     }
 
-    assert!(initial_state.iter().eq([
+    assert!(extended.iter().eq([
         Empty, Empty, Empty, Plant, Empty, Empty, Plant, Empty, Plant, Empty, Empty, Plant, Plant,
         Empty, Empty, Empty, Empty, Empty, Empty, Plant, Plant, Plant, Empty, Empty, Empty, Plant,
         Plant, Plant, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty, Empty,
@@ -74,7 +106,7 @@ fn examples() {
         [Plant, Plant, Plant, Plant, Empty],
     ];
 
-    let state = advance(initial_state, &plants_to_keep);
+    let state = advance(&extended, &plants_to_keep);
 
     assert_eq!(
         state.iter().cloned().collect::<Vec<Pot>>(),
@@ -85,4 +117,6 @@ fn examples() {
             Empty, Empty, Empty,
         ][..]
     );
+
+    assert_eq!(sum_indices_after(&initial_state, &plants_to_keep, 20), 325);
 }
