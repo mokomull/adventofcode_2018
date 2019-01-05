@@ -103,6 +103,23 @@ fn sum_indices_after(
     result
 }
 
+fn main() {
+    use std::io::Read;
+    let stdin = std::io::stdin();
+    let mut lock = stdin.lock();
+
+    let mut input = Vec::new();
+    lock.read_to_end(&mut input).expect("read from stdin");
+
+    let (_rest, (parsed_initial, parsed_rules)) =
+        input_file(nom::types::CompleteByteSlice(&input)).unwrap();
+    let state = parsed_initial.iter().cloned().collect();
+    println!(
+        "Sum of indices is {}",
+        sum_indices_after(&state, &parsed_rules, 20)
+    );
+}
+
 #[test]
 fn examples() {
     let initial_state: State = [
