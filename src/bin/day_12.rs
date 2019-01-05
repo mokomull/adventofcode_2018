@@ -63,7 +63,6 @@ fn advance(state: &State, next_generation: &[Pattern]) -> State {
         ];
         for pattern in next_generation {
             if window == *pattern {
-                println!("matched rule {:?} at index {}", *pattern, i);
                 result.push_back(Plant);
                 continue 'cells;
             }
