@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate nom;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum Pot {
     Plant,
     Empty,
@@ -55,8 +55,8 @@ fn advance(state: &State, next_generation: &[Pattern]) -> State {
 
     'cells: for i in 0..state.len() {
         let window = [
-            *state.get((i - 2) as usize).unwrap_or(&Empty),
-            *state.get((i - 1) as usize).unwrap_or(&Empty),
+            *state.get((i as usize).wrapping_sub(2)).unwrap_or(&Empty),
+            *state.get((i as usize).wrapping_sub(1)).unwrap_or(&Empty),
             *state.get((i) as usize).unwrap_or(&Empty),
             *state.get((i + 1) as usize).unwrap_or(&Empty),
             *state.get((i + 2) as usize).unwrap_or(&Empty),
@@ -78,17 +78,38 @@ fn sum_indices_after(
     next_generation: &[Pattern],
     generations: usize,
 ) -> isize {
+    use std::collections::HashMap;
     let mut state = initial_state.clone();
     let mut shift = 0;
+    let mut seen_states: HashMap<Vec<Pot>, (usize, isize)> = HashMap::new();
 
-    for _ in 0..generations {
-        while state[0] == Plant || state[1] == Plant {
-            state.push_front(Empty);
-            shift += 1;
+    for i in 0..generations {
+        // shrink the state to ..#[.....]#.. -- we need the two Empty cells on
+        // either end, because we may create a plant "before" the row of pots.
+        while state.front() == Some(&Empty) {
+            state.pop_front();
+            shift -= 1;
         }
-        while state[state.len() - 1] == Plant || state[state.len() - 2] == Plant {
-            state.push_back(Empty);
+        state.push_front(Empty);
+        state.push_front(Empty);
+        shift += 2;
+
+        while state.back() == Some(&Empty) {
+            state.pop_back();
         }
+        state.push_back(Empty);
+        state.push_back(Empty);
+
+        if let Some((old_i, old_shift)) =
+            seen_states.insert(state.iter().cloned().collect(), (i, shift))
+        {
+            let cycle_length = i - old_i;
+            if (generations - i) % cycle_length == 0 {
+                shift += (shift - old_shift) * ((generations - i) / cycle_length) as isize;
+                break;
+            }
+        }
+
         state = advance(&state, next_generation);
     }
 
@@ -117,6 +138,11 @@ fn main() {
     println!(
         "Sum of indices is {}",
         sum_indices_after(&state, &parsed_rules, 20)
+    );
+
+    println!(
+        "50 billionth generation: {}",
+        sum_indices_after(&state, &parsed_rules, 50_000_000_000)
     );
 }
 
