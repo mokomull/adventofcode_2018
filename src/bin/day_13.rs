@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate nom;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Segment {
     Vertical,
     Horizontal,
@@ -21,6 +21,13 @@ enum Direction {
     Up,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Turn {
+    Right,
+    Left,
+    Straight,
+}
+
 #[derive(Debug, PartialEq)]
 enum ParsedSegment {
     Vertical,
@@ -30,6 +37,13 @@ enum ParsedSegment {
     Cart(Direction),
     Intersection,
     Empty,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct Cart {
+    dir: Direction,
+    next_intersection: Turn,
+    position: (usize, usize),
 }
 
 use nom::types::CompleteByteSlice as ParserInput;
@@ -54,7 +68,7 @@ named!(parse_row(ParserInput) -> Vec<ParsedSegment>,
 );
 
 type Map = Vec<Vec<Segment>>;
-type Carts = Vec<(Direction, (usize, usize))>;
+type Carts = Vec<Cart>;
 
 fn parse_map(input: &[u8]) -> (Map, Carts) {
     let input = ParserInput(input);
@@ -72,13 +86,17 @@ fn parse_map(input: &[u8]) -> (Map, Carts) {
     ).unwrap();
 
     // Remove carts to leave the underlying tracks
-    let mut carts = vec![];
+    let mut carts: Carts = vec![];
 
     for (row, row_data) in rows.iter_mut().enumerate() {
         for (col, cell) in row_data.iter_mut().enumerate() {
             match *cell {
                 ParsedSegment::Cart(d) => {
-                    carts.push((d, (col, row)));
+                    carts.push(Cart {
+                        position: (col, row),
+                        dir: d,
+                        next_intersection: Turn::Left,
+                    });
 
                     match d {
                         Direction::Left | Direction::Right => {
@@ -158,6 +176,82 @@ fn is_vertical(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool {
     false
 }
 
+// "Err" represents a collision
+fn step(map: &Map, mut carts: Carts) -> Result<Carts, (usize, usize)> {
+    // because positions are (col, row) but we want to iterate through carts in row order
+    carts.sort_by_key(|&c| (c.position.1, c.position.0));
+
+    for i in 0..carts.len() {
+        let mut cart: Cart = carts[i];
+        let (col, row) = cart.position;
+
+        let (next_col, next_row) = match cart.dir {
+            Direction::Right => (col + 1, row),
+            Direction::Down => (col, row + 1),
+            Direction::Left => (col - 1, row),
+            Direction::Up => (col, row - 1),
+        };
+
+        let next_dir = match (cart.dir, map[next_row][next_col]) {
+            (Direction::Right, Segment::CurveUpLeft) => Direction::Up,
+            (Direction::Right, Segment::CurveDownLeft) => Direction::Down,
+            (Direction::Down, Segment::CurveUpLeft) => Direction::Left,
+            (Direction::Down, Segment::CurveUpRight) => Direction::Right,
+            (Direction::Left, Segment::CurveUpRight) => Direction::Up,
+            (Direction::Left, Segment::CurveDownRight) => Direction::Down,
+            (Direction::Up, Segment::CurveDownLeft) => Direction::Left,
+            (Direction::Up, Segment::CurveDownRight) => Direction::Right,
+            (_, Segment::Intersection) => match cart.next_intersection {
+                Turn::Left => {
+                    cart.next_intersection = Turn::Straight;
+                    match cart.dir {
+                        Direction::Right => Direction::Up,
+                        Direction::Down => Direction::Right,
+                        Direction::Left => Direction::Down,
+                        Direction::Up => Direction::Left,
+                    }
+                }
+                Turn::Straight => {
+                    cart.next_intersection = Turn::Right;
+                    cart.dir
+                }
+                Turn::Right => {
+                    cart.next_intersection = Turn::Left;
+                    match cart.dir {
+                        Direction::Right => Direction::Down,
+                        Direction::Down => Direction::Left,
+                        Direction::Left => Direction::Up,
+                        Direction::Up => Direction::Right,
+                    }
+                }
+            },
+            _ => cart.dir,
+        };
+
+        if carts.iter().any(|&c| c.position == (next_col, next_row)) {
+            return Err((next_col, next_row));
+        }
+
+        carts[i] = Cart {
+            position: (next_col, next_row),
+            dir: next_dir,
+            ..cart
+        };
+    }
+
+    Ok(carts)
+}
+
+fn collide(map: &Map, carts: Carts) -> (usize, usize) {
+    let mut res = Ok(carts);
+
+    while let Ok(carts) = res {
+        res = step(map, carts);
+    }
+
+    res.unwrap_err()
+}
+
 #[test]
 fn test_parser() {
     use self::Direction::*;
@@ -213,5 +307,33 @@ fn test_parser() {
         ][..]
     );
 
-    assert_eq!(carts, vec![(Right, (2, 0)), (Down, (9, 3)),]);
+    assert_eq!(
+        carts,
+        vec![
+            Cart {
+                position: (2, 0),
+                dir: Right,
+                next_intersection: Turn::Left
+            },
+            Cart {
+                position: (9, 3),
+                dir: Down,
+                next_intersection: Turn::Left
+            },
+        ]
+    );
+}
+
+#[test]
+fn test_collision() {
+    let (map, carts) = parse_map(
+        b"/->-\\        
+|   |  /----\\
+| /-+--+-\\  |
+| | |  | v  |
+\\-+-/  \\-+--/
+  \\------/   ",
+    );
+
+    assert_eq!(collide(&map, carts), (7, 3));
 }
