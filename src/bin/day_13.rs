@@ -252,6 +252,18 @@ fn collide(map: &Map, carts: Carts) -> (usize, usize) {
     res.unwrap_err()
 }
 
+fn main() {
+    use std::io::Read;
+
+    let stdin = std::io::stdin();
+    let mut lock = stdin.lock();
+    let mut input = vec![];
+    lock.read_to_end(&mut input).unwrap();
+
+    let (map, carts) = parse_map(&input);
+    println!("First collision at {:?}", collide(&map, carts));
+}
+
 #[test]
 fn test_parser() {
     use self::Direction::*;
