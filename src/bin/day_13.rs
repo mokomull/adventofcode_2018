@@ -176,12 +176,19 @@ fn is_vertical(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool {
     false
 }
 
-// "Err" represents a collision
-fn step(map: &Map, mut carts: Carts) -> Result<Carts, (usize, usize)> {
+fn step<T, F>(map: &Map, mut carts: Carts, on_collision: F) -> Result<Carts, T>
+where
+    // Ok(i: usize) means to continue iterating through the carts at i
+    // Err(T) means to stop iterating altogether, and return Err(T) to the
+    // caller (i.e. trains have irreparably collided)
+    F: Fn(usize, (usize, usize), &mut Carts) -> Result<usize, T>,
+{
     // because positions are (col, row) but we want to iterate through carts in row order
     carts.sort_by_key(|&c| (c.position.1, c.position.0));
 
-    for i in 0..carts.len() {
+    let mut i = 0;
+
+    while i < carts.len() {
         let mut cart: Cart = carts[i];
         let (col, row) = cart.position;
 
@@ -228,15 +235,21 @@ fn step(map: &Map, mut carts: Carts) -> Result<Carts, (usize, usize)> {
             _ => cart.dir,
         };
 
-        if carts.iter().any(|&c| c.position == (next_col, next_row)) {
-            return Err((next_col, next_row));
-        }
-
         carts[i] = Cart {
             position: (next_col, next_row),
             dir: next_dir,
             ..cart
         };
+
+        if carts
+            .iter()
+            .enumerate()
+            .any(|(j, &c)| i != j && c.position == (next_col, next_row))
+        {
+            i = on_collision(i, (next_col, next_row), &mut carts)?;
+        } else {
+            i += 1;
+        }
     }
 
     Ok(carts)
@@ -245,11 +258,46 @@ fn step(map: &Map, mut carts: Carts) -> Result<Carts, (usize, usize)> {
 fn collide(map: &Map, carts: Carts) -> (usize, usize) {
     let mut res = Ok(carts);
 
+    fn on_collision(
+        _: usize,
+        position: (usize, usize),
+        _: &mut Carts,
+    ) -> Result<usize, (usize, usize)> {
+        Err(position)
+    }
+
     while let Ok(carts) = res {
-        res = step(map, carts);
+        res = step(map, carts, on_collision);
     }
 
     res.unwrap_err()
+}
+
+fn last_standing(map: &Map, mut carts: Carts) -> (usize, usize) {
+    fn on_collision(
+        mut i: usize,
+        position: (usize, usize),
+        carts: &mut Carts,
+    ) -> Result<usize, ()> {
+        let mut j = 0;
+        while j < carts.len() {
+            if carts[j].position == position {
+                carts.remove(j);
+                if j < i {
+                    i -= 1;
+                }
+            } else {
+                j += 1;
+            }
+        }
+        Ok(i)
+    }
+
+    while carts.len() > 1 {
+        carts = step(map, carts, on_collision).unwrap();
+    }
+
+    carts[0].position
 }
 
 fn main() {
@@ -261,7 +309,11 @@ fn main() {
     lock.read_to_end(&mut input).unwrap();
 
     let (map, carts) = parse_map(&input);
-    println!("First collision at {:?}", collide(&map, carts));
+    println!("First collision at {:?}", collide(&map, carts.clone()));
+    println!(
+        "Last one standing is {:?}",
+        last_standing(&map, carts.clone())
+    );
 }
 
 #[test]
@@ -348,4 +400,16 @@ fn test_collision() {
     );
 
     assert_eq!(collide(&map, carts), (7, 3));
+
+    let (map, carts) = parse_map(
+        b"/>-<\\  
+|   |  
+| /<+-\\
+| | | v
+\\>+</ |
+  |   ^
+  \\<->/",
+    );
+
+    assert_eq!(last_standing(&map, carts), (6, 4));
 }
