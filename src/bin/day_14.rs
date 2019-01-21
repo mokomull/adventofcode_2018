@@ -81,6 +81,11 @@ fn main() {
         print!("{}", i);
     }
     println!("");
+
+    println!(
+        "503761 appears after {} recipes",
+        search_for(&[5, 0, 3, 7, 6, 1])
+    );
 }
 
 #[test]
