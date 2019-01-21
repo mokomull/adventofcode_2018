@@ -67,22 +67,21 @@ named!(parse_row(ParserInput) -> Vec<ParsedSegment>,
     many0!(parse_segment)
 );
 
-type Map = Vec<Vec<Segment>>;
 type Carts = Vec<Cart>;
 
-fn parse_map(input: &[u8]) -> (Map, Carts) {
+fn parse_map(input: &[u8]) -> (Vec<Vec<Segment>>, Carts) {
     let input = ParserInput(input);
     #[rustfmt::skip]
     let (_rest, mut rows) = do_parse!(
         input,
-        foo: many1!(
+        rows: many1!(
             do_parse!(
                 row: parse_row >>
                 opt!(tag!(&b"\n"[..])) >>
                 (row)
             )
         ) >>
-        (foo)
+        (rows)
     ).unwrap();
 
     // Remove carts to leave the underlying tracks
@@ -90,24 +89,21 @@ fn parse_map(input: &[u8]) -> (Map, Carts) {
 
     for (row, row_data) in rows.iter_mut().enumerate() {
         for (col, cell) in row_data.iter_mut().enumerate() {
-            match *cell {
-                ParsedSegment::Cart(d) => {
-                    carts.push(Cart {
-                        position: (col, row),
-                        dir: d,
-                        next_intersection: Turn::Left,
-                    });
+            if let ParsedSegment::Cart(d) = *cell {
+                carts.push(Cart {
+                    position: (col, row),
+                    dir: d,
+                    next_intersection: Turn::Left,
+                });
 
-                    match d {
-                        Direction::Left | Direction::Right => {
-                            *cell = ParsedSegment::Horizontal;
-                        }
-                        Direction::Up | Direction::Down => {
-                            *cell = ParsedSegment::Vertical;
-                        }
+                match d {
+                    Direction::Left | Direction::Right => {
+                        *cell = ParsedSegment::Horizontal;
+                    }
+                    Direction::Up | Direction::Down => {
+                        *cell = ParsedSegment::Vertical;
                     }
                 }
-                _ => {}
             }
         }
     }
@@ -160,7 +156,7 @@ fn parse_map(input: &[u8]) -> (Map, Carts) {
     (result, carts)
 }
 
-fn is_horizontal(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool {
+fn is_horizontal(data: &[Vec<ParsedSegment>], row: usize, col: usize) -> bool {
     let cell = data.get(row).and_then(|r| r.get(col));
     if cell == Some(&ParsedSegment::Horizontal) || cell == Some(&ParsedSegment::Intersection) {
         return true;
@@ -168,7 +164,7 @@ fn is_horizontal(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool
     false
 }
 
-fn is_vertical(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool {
+fn is_vertical(data: &[Vec<ParsedSegment>], row: usize, col: usize) -> bool {
     let cell = data.get(row).and_then(|r| r.get(col));
     if cell == Some(&ParsedSegment::Vertical) || cell == Some(&ParsedSegment::Intersection) {
         return true;
@@ -176,7 +172,7 @@ fn is_vertical(data: &Vec<Vec<ParsedSegment>>, row: usize, col: usize) -> bool {
     false
 }
 
-fn step<T, F>(map: &Map, mut carts: Carts, on_collision: F) -> Result<Carts, T>
+fn step<T, F>(map: &[Vec<Segment>], mut carts: Carts, on_collision: F) -> Result<Carts, T>
 where
     // Ok(i: usize) means to continue iterating through the carts at i
     // Err(T) means to stop iterating altogether, and return Err(T) to the
@@ -255,7 +251,7 @@ where
     Ok(carts)
 }
 
-fn collide(map: &Map, carts: Carts) -> (usize, usize) {
+fn collide(map: &[Vec<Segment>], carts: Carts) -> (usize, usize) {
     let mut res = Ok(carts);
 
     fn on_collision(
@@ -273,7 +269,7 @@ fn collide(map: &Map, carts: Carts) -> (usize, usize) {
     res.unwrap_err()
 }
 
-fn last_standing(map: &Map, mut carts: Carts) -> (usize, usize) {
+fn last_standing(map: &[Vec<Segment>], mut carts: Carts) -> (usize, usize) {
     fn on_collision(
         mut i: usize,
         position: (usize, usize),

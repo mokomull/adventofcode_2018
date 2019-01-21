@@ -8,7 +8,7 @@ fn power_level(serial: usize, x: usize, y: usize) -> isize {
     digit as isize - 5
 }
 
-fn find_largest(partial_sum: &Vec<Vec<isize>>, size: usize) -> ((usize, usize), isize) {
+fn find_largest(partial_sum: &[Vec<isize>], size: usize) -> ((usize, usize), isize) {
     use itertools::Itertools;
 
     (0..=300 - size)
@@ -32,7 +32,7 @@ fn find_largest(partial_sum: &Vec<Vec<isize>>, size: usize) -> ((usize, usize), 
         .unwrap()
 }
 
-fn find_largest_variable(partial_sum: &Vec<Vec<isize>>) -> (usize, usize, usize) {
+fn find_largest_variable(partial_sum: &[Vec<isize>]) -> (usize, usize, usize) {
     use rayon::prelude::*;
 
     (1usize..301)

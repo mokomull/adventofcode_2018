@@ -37,7 +37,7 @@ impl Iterator for Recipes {
         self.elf_b =
             (self.elf_b + self.scoreboard[self.elf_b] as usize + 1) % self.scoreboard.len();
 
-        return self.next();
+        self.next()
     }
 }
 
@@ -75,12 +75,12 @@ fn search_for(digits: &[u8]) -> usize {
 }
 
 fn main() {
-    let output = trailing_ten(503761);
+    let output = trailing_ten(503_761);
     print!("The next ten are ");
     for i in &output {
         print!("{}", i);
     }
-    println!("");
+    println!();
 
     println!(
         "503761 appears after {} recipes",
