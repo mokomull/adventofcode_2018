@@ -20,6 +20,15 @@ fn trailing_ten(after: usize) -> [u8; 10] {
     retval
 }
 
+fn main() {
+    let output = trailing_ten(503761);
+    print!("The next ten are ");
+    for i in &output {
+        print!("{}", i);
+    }
+    println!("");
+}
+
 #[test]
 fn examples() {
     assert_eq!(trailing_ten(9), [5, 1, 5, 8, 9, 1, 6, 7, 7, 9]);
