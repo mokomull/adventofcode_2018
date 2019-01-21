@@ -1,22 +1,52 @@
-fn trailing_ten(after: usize) -> [u8; 10] {
-    let mut recipes = vec![3u8, 7];
-    let mut elf_a = 0;
-    let mut elf_b = 1;
+struct Recipes {
+    scoreboard: Vec<u8>,
+    elf_a: usize,
+    elf_b: usize,
+    to_emit: usize,
+}
 
-    while recipes.len() < after + 10 {
-        let digits = recipes[elf_a] + recipes[elf_b];
+impl Recipes {
+    fn new() -> Self {
+        Recipes {
+            scoreboard: vec![3, 7],
+            elf_a: 0,
+            elf_b: 1,
+            to_emit: 0,
+        }
+    }
+}
+
+impl Iterator for Recipes {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<u8> {
+        if self.scoreboard.len() > self.to_emit {
+            self.to_emit += 1;
+            return Some(self.scoreboard[self.to_emit - 1]);
+        }
+
+        let digits = self.scoreboard[self.elf_a] + self.scoreboard[self.elf_b];
 
         if digits / 10 > 0 {
-            recipes.push(digits / 10);
+            self.scoreboard.push(digits / 10);
         }
-        recipes.push(digits % 10);
+        self.scoreboard.push(digits % 10);
 
-        elf_a = (elf_a + recipes[elf_a] as usize + 1) % recipes.len();
-        elf_b = (elf_b + recipes[elf_b] as usize + 1) % recipes.len();
+        self.elf_a =
+            (self.elf_a + self.scoreboard[self.elf_a] as usize + 1) % self.scoreboard.len();
+        self.elf_b =
+            (self.elf_b + self.scoreboard[self.elf_b] as usize + 1) % self.scoreboard.len();
+
+        return self.next();
     }
+}
+
+fn trailing_ten(after: usize) -> [u8; 10] {
+    let recipes = Recipes::new();
+    let trailing: Vec<u8> = recipes.skip(after).take(10).collect();
 
     let mut retval = [0; 10];
-    retval.copy_from_slice(&recipes[after..after + 10]);
+    retval.copy_from_slice(&trailing);
     retval
 }
 
