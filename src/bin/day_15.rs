@@ -74,7 +74,10 @@ fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Direction {
         _ => panic!("Cell {:?} was neither Goblin nor Elf", position),
     };
 
-    let mut reachable_enemies = HashSet::new();
+    // We want to move to the target that is first in the reading order, so we'll scan for the
+    // reachable squares in reading order too.  Note that an enemy's "up" square is always going to
+    // be first in "reading order".
+    let mut reachable_enemies = BTreeSet::new();
     let mut predecessors = HashMap::<(usize, usize), (Direction, usize)>::new();
     let mut to_visit = BTreeSet::new();
     to_visit.insert((position, 0));
@@ -174,7 +177,7 @@ fn next_step_visit(
     to_visit: &mut BTreeSet<((usize, usize), usize)>,
     predecessors: &mut HashMap<(usize, usize), (Direction, usize)>,
     step_direction: Direction,
-    reachable_enemies: &mut HashSet<(usize, usize)>,
+    reachable_enemies: &mut BTreeSet<(usize, usize)>,
 ) {
     let cell = *board.get(row).and_then(|r| r.get(col)).unwrap_or(&Wall);
     match cell {
