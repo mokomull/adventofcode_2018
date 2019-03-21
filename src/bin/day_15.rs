@@ -209,3 +209,72 @@ fn test_next_step() {
     let (_remaining, board) = board(CompleteByteSlice(&input[..])).unwrap();
     assert_eq!(next_step(&board, (1, 2)), Right);
 }
+
+#[derive(Debug, PartialEq)]
+enum Action {
+    Move(Direction),
+    Attack(Direction),
+    Nothing,
+}
+
+fn next_action(board: &[Vec<Unit>], (row, col): (usize, usize)) -> Action {
+    let enemy = match board.get(row).and_then(|r| r.get(col)) {
+        Some(Goblin) => Elf,
+        Some(Elf) => Goblin,
+        _ => panic!("Neither goblin nor elf at {}, {}", row, col),
+    };
+    let attack = [
+        (row.wrapping_sub(1), col, Up),
+        (row, col.wrapping_sub(1), Left),
+        (row, col + 1, Right),
+        (row + 1, col, Down),
+    ]
+    .iter()
+    .cloned()
+    .filter(|&(other_row, other_col, _dir)| {
+        board.get(other_row).and_then(|r| r.get(other_col)) == Some(&enemy)
+    })
+    .next();
+
+    if let Some((_, _, dir)) = attack {
+        return Action::Attack(dir);
+    }
+
+    Action::Move(next_step(board, (row, col)))
+}
+
+#[test]
+fn test_next_action() {
+    let input = b"#######
+#.E...#
+#.....#
+#...G.#
+#######";
+    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+
+    assert_eq!(next_action(&b, (1, 2)), Action::Move(Right));
+
+    let input = b"#########
+#.......#
+#..GGG..#
+#..GEG..#
+#G..G...#
+#......G#
+#.......#
+#.......#
+#########";
+    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+    assert_eq!(next_action(&b, (3, 3)), Action::Attack(Right));
+
+    let input = b"#########
+#.......#
+#..GGG..#
+#..G.G..#
+#G..G...#
+#......G#
+#.......#
+#.......#
+#########";
+    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+    assert_eq!(next_action(&b, (3, 3)), Action::Nothing);
+}
