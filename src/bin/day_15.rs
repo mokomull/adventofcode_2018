@@ -7,8 +7,8 @@ use nom::types::CompleteByteSlice;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Unit {
-    Elf,
-    Goblin,
+    Elf(usize),
+    Goblin(usize),
     Wall,
     Empty,
 }
@@ -27,8 +27,8 @@ use self::Unit::*;
 named!(unit(CompleteByteSlice) -> Unit,
     alt!(
         do_parse!(tag!(&b"#"[..]) >> (Wall)) |
-        do_parse!(tag!(&b"E"[..]) >> (Elf)) |
-        do_parse!(tag!(&b"G"[..]) >> (Goblin)) |
+        do_parse!(tag!(&b"E"[..]) >> (Elf(200))) |
+        do_parse!(tag!(&b"G"[..]) >> (Goblin(200))) |
         do_parse!(tag!(&b"."[..]) >> (Empty))
     )
 );
@@ -59,20 +59,24 @@ fn test_parser() {
         board,
         vec![
             vec![Wall, Wall, Wall, Wall, Wall, Wall, Wall],
-            vec![Wall, Elf, Empty, Empty, Goblin, Empty, Wall],
+            vec![Wall, Elf(200), Empty, Empty, Goblin(200), Empty, Wall],
             vec![Wall, Empty, Empty, Empty, Wall, Empty, Wall],
-            vec![Wall, Empty, Goblin, Empty, Wall, Goblin, Wall],
+            vec![Wall, Empty, Goblin(200), Empty, Wall, Goblin(200), Wall],
             vec![Wall, Wall, Wall, Wall, Wall, Wall, Wall],
         ]
     );
 }
 
+fn get_enemy(board: &[Vec<Unit>], (row, col): (usize, usize)) -> std::mem::Discriminant<Unit> {
+    match board.get(row).and_then(|r| r.get(col)) {
+        Some(Goblin(_)) => std::mem::discriminant(&Elf(0)),
+        Some(Elf(_)) => std::mem::discriminant(&Goblin(0)),
+        _ => panic!("Cell {}, {} was neither Goblin nor Elf", row, col),
+    }
+}
+
 fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Direction {
-    let enemy = match board.get(position.0).and_then(|row| row.get(position.1)) {
-        Some(Goblin) => Elf,
-        Some(Elf) => Goblin,
-        _ => panic!("Cell {:?} was neither Goblin nor Elf", position),
-    };
+    let enemy = get_enemy(board, position);
 
     // We want to move to the target that is first in the reading order, so we'll scan for the
     // reachable squares in reading order too.  Note that an enemy's "up" square is always going to
@@ -173,7 +177,7 @@ fn next_step_visit(
     row: usize,
     col: usize,
     distance: usize,
-    enemy: Unit,
+    enemy: std::mem::Discriminant<Unit>,
     to_visit: &mut BTreeSet<((usize, usize), usize)>,
     predecessors: &mut HashMap<(usize, usize), (Direction, usize)>,
     step_direction: Direction,
@@ -181,10 +185,10 @@ fn next_step_visit(
 ) {
     let cell = *board.get(row).and_then(|r| r.get(col)).unwrap_or(&Wall);
     match cell {
-        x if x == enemy => {
+        x if std::mem::discriminant(&x) == enemy => {
             reachable_enemies.insert((row - 1, col));
         }
-        Goblin | Elf => {}
+        Goblin(_) | Elf(_) => {}
         Wall => {}
         Empty => {
             let previous_distance = predecessors
@@ -218,11 +222,8 @@ enum Action {
 }
 
 fn next_action(board: &[Vec<Unit>], (row, col): (usize, usize)) -> Action {
-    let enemy = match board.get(row).and_then(|r| r.get(col)) {
-        Some(Goblin) => Elf,
-        Some(Elf) => Goblin,
-        _ => panic!("Neither goblin nor elf at {}, {}", row, col),
-    };
+    let enemy = get_enemy(board, (row, col));
+
     let attack = [
         (row.wrapping_sub(1), col, Up),
         (row, col.wrapping_sub(1), Left),
@@ -232,7 +233,11 @@ fn next_action(board: &[Vec<Unit>], (row, col): (usize, usize)) -> Action {
     .iter()
     .cloned()
     .filter(|&(other_row, other_col, _dir)| {
-        board.get(other_row).and_then(|r| r.get(other_col)) == Some(&enemy)
+        board
+            .get(other_row)
+            .and_then(|r| r.get(other_col))
+            .filter(|&unit| std::mem::discriminant(unit) == enemy)
+            .is_some()
     })
     .next();
 
