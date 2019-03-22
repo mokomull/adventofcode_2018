@@ -232,16 +232,21 @@ fn next_action(board: &[Vec<Unit>], (row, col): (usize, usize)) -> Action {
     ]
     .iter()
     .cloned()
-    .filter(|&(other_row, other_col, _dir)| {
+    .filter_map(|(other_row, other_col, dir)| {
         board
             .get(other_row)
             .and_then(|r| r.get(other_col))
             .filter(|&unit| std::mem::discriminant(unit) == enemy)
-            .is_some()
+            .map(|&unit| (unit, dir))
     })
-    .next();
+    .min_by_key(|&(unit, _dir)| {
+        match unit {
+            Goblin(x) | Elf(x) => x,
+            _ => panic!("should have filtered out enemies before we get here")
+        }
+    });
 
-    if let Some((_, _, dir)) = attack {
+    if let Some((_, dir)) = attack {
         return Action::Attack(dir);
     }
 
