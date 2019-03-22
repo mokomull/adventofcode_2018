@@ -71,7 +71,7 @@ fn get_enemy(board: &[Vec<Unit>], (row, col): (usize, usize)) -> std::mem::Discr
     match board.get(row).and_then(|r| r.get(col)) {
         Some(Goblin(_)) => std::mem::discriminant(&Elf(0)),
         Some(Elf(_)) => std::mem::discriminant(&Goblin(0)),
-        _ => panic!("Cell {}, {} was neither Goblin nor Elf", row, col),
+        x => panic!("Cell {}, {} was {:?}, neither Goblin nor Elf", row, col, x),
     }
 }
 
@@ -288,4 +288,109 @@ fn test_next_action() {
 #########";
     let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
     assert_eq!(next_action(&b, (3, 3)), Action::Nothing);
+}
+
+fn run(mut board: Vec<Vec<Unit>>) -> usize {
+    let mut any_actions = true;
+    let mut rounds = 0;
+
+    while any_actions {
+        any_actions = false;
+
+        let players: Vec<(usize, usize)> = board
+            .iter()
+            .enumerate()
+            .flat_map(|(row, r)| r
+                .iter()
+                .enumerate()
+                .filter_map(|(col, &unit)| match unit {
+                    Goblin(_) | Elf(_) => Some((row, col)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+            )
+            .collect();
+
+        for (row, col) in players {
+            // it may have been killed by a previous action in the same round
+            if board[row][col] == Empty {
+                continue;
+            }
+
+            let action = next_action(&board, (row, col));
+
+            if action != Action::Nothing {
+                any_actions = true;
+            }
+
+            match action {
+                Action::Move(dir) => {
+                    let (new_row, new_col) = match dir {
+                        Left => (row, col - 1),
+                        Right => (row, col + 1),
+                        Down => (row + 1, col),
+                        Up => (row - 1, col),
+                    };
+                    let unit = board[row][col];
+                    board[row][col] = Empty;
+                    board[new_row][new_col] = unit;
+                }
+                Action::Attack(dir) => {
+                    let (other_row, other_col) = match dir {
+                        Left => (row, col - 1),
+                        Right => (row, col + 1),
+                        Down => (row + 1, col),
+                        Up => (row - 1, col),
+                    };
+
+                    let new_unit = match board[other_row][other_col] {
+                        Goblin(x) => if x <= 3 {
+                            Empty
+                        } else {
+                            Goblin(x - 3)
+                        },
+                        Elf(x) => if x <= 3 {
+                            Empty
+                        } else {
+                            Elf(x - 3)
+                        },
+                        something_else => panic!("Tried to attack a {:?}", something_else),
+                    };
+
+                    board[other_row][other_col] = new_unit;
+                }
+                _ => { }
+            }
+        }
+
+        rounds += 1;
+    }
+
+    let sum_hp: usize = board
+        .iter()
+        .flat_map(|r| r
+            .iter()
+            .map(|&unit| match unit {
+                Goblin(x) | Elf(x) => x,
+                _ => 0,
+            })
+        )
+        .sum();
+
+    println!("sum is {}, rounds is {}", sum_hp, rounds);
+
+    return (rounds - 1) * sum_hp;
+}
+
+#[test]
+fn test_run() {
+    let input = b"#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######";
+    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+    assert_eq!(run(b), 27730);
 }
