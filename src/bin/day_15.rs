@@ -75,7 +75,7 @@ fn get_enemy(board: &[Vec<Unit>], (row, col): (usize, usize)) -> std::mem::Discr
     }
 }
 
-fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Direction {
+fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Option<Direction> {
     let enemy = get_enemy(board, position);
 
     // We want to move to the target that is first in the reading order, so we'll scan for the
@@ -150,8 +150,7 @@ fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Direction {
         .filter(|position| predecessors.contains_key(position))
         // TODO: I might need to actually emit _all_ of the ones of the same distance, rather than
         // the first one I come to.
-        .min_by_key(|position| predecessors.get(position).expect("just filtered").1)
-        .expect("at least one enemy should be reachable");
+        .min_by_key(|position| predecessors.get(position).expect("just filtered").1)?;
 
     // Walk the path to determine the original step
     let (mut row, mut col) = adjacent_to_enemy;
@@ -169,7 +168,7 @@ fn next_step(board: &[Vec<Unit>], position: (usize, usize)) -> Direction {
         col = predecessor_position.1;
     }
 
-    direction.expect("there is a next step")
+    direction
 }
 
 fn next_step_visit(
@@ -211,7 +210,7 @@ fn test_next_step() {
 #...G.#
 #######";
     let (_remaining, board) = board(CompleteByteSlice(&input[..])).unwrap();
-    assert_eq!(next_step(&board, (1, 2)), Right);
+    assert_eq!(next_step(&board, (1, 2)), Some(Right));
 }
 
 #[derive(Debug, PartialEq)]
@@ -239,18 +238,20 @@ fn next_action(board: &[Vec<Unit>], (row, col): (usize, usize)) -> Action {
             .filter(|&unit| std::mem::discriminant(unit) == enemy)
             .map(|&unit| (unit, dir))
     })
-    .min_by_key(|&(unit, _dir)| {
-        match unit {
-            Goblin(x) | Elf(x) => x,
-            _ => panic!("should have filtered out enemies before we get here")
-        }
+    .min_by_key(|&(unit, _dir)| match unit {
+        Goblin(x) | Elf(x) => x,
+        _ => panic!("should have filtered out enemies before we get here"),
     });
 
     if let Some((_, dir)) = attack {
         return Action::Attack(dir);
     }
 
-    Action::Move(next_step(board, (row, col)))
+    if let Some(dir) = next_step(board, (row, col)) {
+        return Action::Move(dir);
+    }
+
+    Action::Nothing
 }
 
 #[test]
