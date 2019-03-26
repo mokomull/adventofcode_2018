@@ -300,15 +300,15 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
         let players: Vec<(usize, usize)> = board
             .iter()
             .enumerate()
-            .flat_map(|(row, r)| r
-                .iter()
-                .enumerate()
-                .filter_map(|(col, &unit)| match unit {
-                    Goblin(_) | Elf(_) => Some((row, col)),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-            )
+            .flat_map(|(row, r)| {
+                r.iter()
+                    .enumerate()
+                    .filter_map(|(col, &unit)| match unit {
+                        Goblin(_) | Elf(_) => Some((row, col)),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+            })
             .collect();
 
         for (row, col) in players {
@@ -344,22 +344,26 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                     };
 
                     let new_unit = match board[other_row][other_col] {
-                        Goblin(x) => if x <= 3 {
-                            Empty
-                        } else {
-                            Goblin(x - 3)
-                        },
-                        Elf(x) => if x <= 3 {
-                            Empty
-                        } else {
-                            Elf(x - 3)
-                        },
+                        Goblin(x) => {
+                            if x <= 3 {
+                                Empty
+                            } else {
+                                Goblin(x - 3)
+                            }
+                        }
+                        Elf(x) => {
+                            if x <= 3 {
+                                Empty
+                            } else {
+                                Elf(x - 3)
+                            }
+                        }
                         something_else => panic!("Tried to attack a {:?}", something_else),
                     };
 
                     board[other_row][other_col] = new_unit;
                 }
-                _ => { }
+                _ => {}
             }
         }
 
@@ -368,13 +372,12 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
     let sum_hp: usize = board
         .iter()
-        .flat_map(|r| r
-            .iter()
-            .map(|&unit| match unit {
+        .flat_map(|r| {
+            r.iter().map(|&unit| match unit {
                 Goblin(x) | Elf(x) => x,
                 _ => 0,
             })
-        )
+        })
         .sum();
 
     println!("sum is {}, rounds is {}", sum_hp, rounds);
