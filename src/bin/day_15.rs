@@ -183,19 +183,28 @@ fn next_step_visit(
     reachable_enemies: &mut BTreeSet<(usize, usize)>,
 ) {
     let cell = *board.get(row).and_then(|r| r.get(col)).unwrap_or(&Wall);
+
+    let mut update_predecessor = || -> bool {
+        let previous_distance = predecessors
+            .get(&(row, col))
+            .map(|&(_, d)| d)
+            .unwrap_or(std::usize::MAX);
+        if distance + 1 < previous_distance {
+            predecessors.insert((row, col), (step_direction, distance + 1));
+            return true;
+        }
+        false
+    };
+
     match cell {
         x if std::mem::discriminant(&x) == enemy => {
-            reachable_enemies.insert((row - 1, col));
+            update_predecessor();
+            reachable_enemies.insert((row, col));
         }
         Goblin(_) | Elf(_) => {}
         Wall => {}
         Empty => {
-            let previous_distance = predecessors
-                .get(&(row, col))
-                .map(|&(_, d)| d)
-                .unwrap_or(std::usize::MAX);
-            if distance + 1 < previous_distance {
-                predecessors.insert((row, col), (step_direction, distance + 1));
+            if update_predecessor() {
                 to_visit.insert(((row, col), distance + 1));
             }
         }
@@ -288,6 +297,28 @@ fn test_next_action() {
 #########";
     let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
     assert_eq!(next_action(&b, (3, 3)), Action::Nothing);
+
+    /* From a failing case demonstrated in test_run():
+        #######
+        #..G..# 200
+        #...EG# 197 197
+        #.#.#G# 200
+        #..G#E# 200 197
+        #.....#
+        #######
+        4, 3 decided to Nothing
+
+        The goblin at 4, 3 should have been able to move up.
+    */
+    let input = b"#######
+#..G..#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######";
+    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+    assert_eq!(next_action(&b, (4, 3)), Action::Move(Up));
 }
 
 fn run(mut board: Vec<Vec<Unit>>) -> usize {
