@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate nom;
 
+#[macro_use]
+extern crate log;
+
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use nom::types::CompleteByteSlice;
@@ -326,6 +329,8 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
     let mut rounds = 0;
 
     while any_actions {
+        debug!("=== Starting round {}", rounds);
+
         any_actions = false;
 
         let players: Vec<(usize, usize)> = board
@@ -345,10 +350,14 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
         for (row, col) in players {
             // it may have been killed by a previous action in the same round
             if board[row][col] == Empty {
+                debug!("skipped {}, {}", row, col);
                 continue;
             }
 
             let action = next_action(&board, (row, col));
+            dump_board(&board);
+            debug!("{}, {} decided to {:?}", row, col, action);
+            debug!("");
 
             if action != Action::Nothing {
                 any_actions = true;
@@ -418,6 +427,11 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
 #[test]
 fn test_run() {
+    env_logger::Builder::from_default_env()
+        .is_test(true)
+        .default_format_timestamp(false)
+        .init();
+
     let input = b"#######
 #.G...#
 #...EG#
@@ -427,4 +441,28 @@ fn test_run() {
 #######";
     let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
     assert_eq!(run(b), 27730);
+}
+
+fn dump_board(board: &[Vec<Unit>]) {
+    for row in board {
+        let mut line = String::new();
+        for col in row {
+            let c = match *col {
+                Wall => '#',
+                Empty => '.',
+                Goblin(_) => 'G',
+                Elf(_) => 'E',
+            };
+            line.push(c);
+        }
+
+        for col in row {
+            match *col {
+                Goblin(x) | Elf(x) => line.push_str(&format!(" {}", x)),
+                _ => {}
+            }
+        }
+
+        debug!("{}", line);
+    }
 }
