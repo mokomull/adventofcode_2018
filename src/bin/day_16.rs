@@ -2,6 +2,8 @@
 extern crate nom;
 
 use nom::types::CompleteByteSlice;
+use nom::ErrorKind::Custom;
+
 type Reg = u64;
 
 #[derive(Debug, PartialEq)]
@@ -13,7 +15,30 @@ enum Line {
 }
 
 named!(line(CompleteByteSlice) -> Line,
+    alt!(before_or_after | opcode | empty)
+);
+
+named!(before_or_after(CompleteByteSlice) -> Line,
+    do_parse!(
+        kind: alt!(tag!(&b"Before: "[..]) | tag!(&b"After:  "[..])) >>
+        tag!(&b"["[..]) >>
+        items: ws!(separated_list!(tag!(&b","[..]), nom::digit)) >>
+        cond!(items.len() != 4, error_position!(Custom(42))) >>
+        (
+            unimplemented!()
+        )
+    )
+);
+
+named!(opcode(CompleteByteSlice) -> Line,
     value!(unimplemented!())
+);
+
+named!(empty(CompleteByteSlice) -> Line,
+    do_parse!(
+        eof!() >>
+        (Line::Empty)
+    )
 );
 
 #[test]
