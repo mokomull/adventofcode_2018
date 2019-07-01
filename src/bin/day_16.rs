@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate nom;
 
+use std::convert::TryInto;
+
 use nom::types::CompleteByteSlice;
 use nom::ErrorKind::Custom;
 
@@ -14,6 +16,13 @@ enum Line {
     Empty,
 }
 
+fn create_error(input: CompleteByteSlice) -> nom::IResult<CompleteByteSlice, (), u32> {
+    Err(nom::Err::Error(error_position!(
+        input,
+        nom::ErrorKind::Custom(0)
+    )))
+}
+
 named!(line(CompleteByteSlice) -> Line,
     alt!(before_or_after | opcode | empty)
 );
@@ -23,10 +32,21 @@ named!(before_or_after(CompleteByteSlice) -> Line,
         kind: alt!(tag!(&b"Before: "[..]) | tag!(&b"After:  "[..])) >>
         tag!(&b"["[..]) >>
         items: ws!(separated_list!(tag!(&b","[..]), nom::digit)) >>
-        cond!(items.len() != 4, error_position!(Custom(42))) >>
-        (
-            unimplemented!()
-        )
+        cond_with_error!(items.len() != 4, call!(create_error)) >>
+        tag!(&b"]"[..]) >>
+        ({
+            let wrapped = items
+                .iter()
+                .map(|x| std::str::from_utf8(x).expect("invalid utf8 somehow").parse::<Reg>().expect("couldn't parse an integer"))
+                .collect::<Vec<_>>()[..]
+                .try_into()
+                .expect("wrong number of registers");
+            match &*kind {
+                &b"Before: " => Line::Before(wrapped),
+                &b"After:  " => Line::After(wrapped),
+                _ => panic!("parser bug: neither before nore after")
+            }
+        })
     )
 );
 
