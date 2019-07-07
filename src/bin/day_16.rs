@@ -290,5 +290,24 @@ fn main() {
         }
     }
 
-    println!("Known: {:?}", known);
+    let opcode_map: HashMap<Op, Opcode> = known
+        .iter()
+        .map(|(&opcode, &numeric)| (numeric, opcode))
+        .collect();
+
+    let mut registers = [0; 4];
+
+    for line in std::io::stdin().lock().lines() {
+        let line = line.expect("stdin read failed");
+
+        match crate::line(line.as_bytes().into()).expect("parse error").1 {
+            Line::Instruction(instruction) => {
+                registers = eval(opcode_map[&instruction[0]], registers, instruction);
+            }
+            Line::Empty => (),
+            x => panic!("Should not see anything but instructions here: {:?}", x),
+        }
+    }
+
+    println!("Register 0 contains {}", registers[0]);
 }
