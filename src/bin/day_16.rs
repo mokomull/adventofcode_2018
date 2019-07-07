@@ -69,7 +69,8 @@ named!(before_or_after(CompleteByteSlice) -> Line,
 
 named!(opcode(CompleteByteSlice) -> Line,
     do_parse!(
-        operations: call!(four_integers::<u64, _>, b" ") >>
+        // no "separator" for four_integers, since it's already wrapped in ws!().
+        operations: call!(four_integers::<u64, _>, b"") >>
         (Line::Opcode(operations))
     )
 );
