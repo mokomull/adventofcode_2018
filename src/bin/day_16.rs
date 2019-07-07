@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate nom;
 
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::BufRead;
 
@@ -107,55 +108,120 @@ fn line_parser() {
     assert_eq!(line(empty_string), Ok((empty_string, Empty)));
 }
 
-fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> usize {
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+enum Opcode {
+    Addr,
+    Addi,
+    Mulr,
+    Muli,
+    Banr,
+    Bani,
+    Borr,
+    Bori,
+    Setr,
+    Seti,
+    Gtir,
+    Gtri,
+    Gtrr,
+    Eqir,
+    Eqri,
+    Eqrr,
+}
+
+use Opcode::*;
+
+const ALL_OPCODES: &[Opcode] = &[
+    Addr, Addi, Mulr, Muli, Banr, Bani, Borr, Bori, Setr, Seti, Gtir, Gtri, Gtrr, Eqir, Eqri, Eqrr,
+];
+
+fn which_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> Vec<Opcode> {
+    ALL_OPCODES
+        .iter()
+        .filter_map(|&opcode| {
+            if after == eval(opcode, before, instruction) {
+                Some(opcode)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn eval(opcode: Opcode, before: [Reg; 4], instruction: [Op; 4]) -> [Reg; 4] {
     let [_opcode, source_1_idx, source_2_idx, dest_idx] = instruction;
 
     let source_1 = before[source_1_idx];
     let source_2 = before[source_2_idx];
-    let dest = after[dest_idx];
 
     let source_1_imm = source_1_idx as Reg;
     let source_2_imm = source_2_idx as Reg;
 
-    let mismatch_non_dest = before
-        .iter()
-        .zip(&after)
-        .enumerate()
-        .filter(|&(i, _)| i != dest_idx)
-        .any(|(_, (b, a))| b != a);
+    let result_value = match opcode {
+        Addr => source_1 + source_2,
+        Addi => source_1 + source_2_imm,
+        Mulr => source_1 * source_2,
+        Muli => source_1 * source_2_imm,
+        Banr => source_1 & source_2,
+        Bani => source_1 & source_2_imm,
+        Borr => source_1 | source_2,
+        Bori => source_1 | source_2_imm,
+        Setr => source_1,
+        Seti => source_1_imm,
+        Gtir => {
+            if source_1_imm > source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Gtri => {
+            if source_1 > source_2_imm {
+                1
+            } else {
+                0
+            }
+        }
+        Gtrr => {
+            if source_1 > source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Eqir => {
+            if source_1_imm == source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Eqri => {
+            if source_1 == source_2_imm {
+                1
+            } else {
+                0
+            }
+        }
+        Eqrr => {
+            if source_1 == source_2 {
+                1
+            } else {
+                0
+            }
+        }
+    };
 
-    if mismatch_non_dest {
-        return 0;
-    }
-
-    let operations = [
-        dest == source_1 + source_2,                          // addr
-        dest == source_1 + source_2_imm,                      // addi
-        dest == source_1 * source_2,                          // mulr
-        dest == source_1 * source_2_imm,                      // muli
-        dest == source_1 & source_2,                          // banr
-        dest == source_1 & source_2_imm,                      // bani
-        dest == source_1 | source_2,                          // borr
-        dest == source_1 | source_2_imm,                      // bori
-        dest == source_1,                                     // setr
-        dest == source_1_imm,                                 // seti
-        dest == if source_1_imm > source_2 { 1 } else { 0 },  // gtir
-        dest == if source_1 > source_2_imm { 1 } else { 0 },  // gtri
-        dest == if source_1 > source_2 { 1 } else { 0 },      // gtrr
-        dest == if source_1_imm == source_2 { 1 } else { 0 }, // eqir
-        dest == if source_1 == source_2_imm { 1 } else { 0 }, // eqri
-        dest == if source_1 == source_2 { 1 } else { 0 },     // eqrr
-    ];
-
-    operations.iter().filter(|&&x| x).count()
+    let mut result = before;
+    result[dest_idx] = result_value;
+    result
 }
 
 #[test]
 fn test_how_many_opcodes() {
     assert_eq!(
-        how_many_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
-        3
-    )
+        which_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
+        vec![Addi, Mulr, Seti]
+    );
 }
 
 fn main() {
@@ -163,6 +229,8 @@ fn main() {
     let mut instruction = None;
     let mut after = None;
     let mut count = 0;
+
+    let mut possibilities: HashMap<Op, Vec<Vec<Opcode>>> = HashMap::new();
 
     for line in std::io::stdin().lock().lines() {
         let line = line.expect("stdin read failed");
@@ -177,18 +245,69 @@ fn main() {
                     break;
                 }
 
+                let opcode = instruction.expect("instruction not set")[0];
+
                 // but if otherwise we've been partially set, then panic.
-                let this_count = how_many_opcodes(
+                let opcodes = which_opcodes(
                     before.take().expect("before not set"),
                     instruction.take().expect("instruction not set"),
                     after.take().expect("after not set"),
                 );
-                if this_count >= 3 {
+                if opcodes.len() >= 3 {
                     count += 1;
                 }
+
+                possibilities.entry(opcode).or_insert(vec![]).push(opcodes)
             }
         }
     }
 
     println!("{} instructions can be 3 or more opcodes", count);
+
+    let mut known: HashMap<Opcode, Op> = HashMap::new();
+
+    while !possibilities.is_empty() {
+        let mut new_known: Vec<(Opcode, Op)> = Vec::new();
+
+        for (opcode, opcode_sets) in &possibilities {
+            let mut valid: HashSet<Opcode> = opcode_sets[0].iter().cloned().collect();
+            for other in opcode_sets {
+                let other_set: HashSet<Opcode> = other.iter().cloned().collect();
+                valid.retain(|&x| other_set.contains(&x));
+            }
+            valid.retain(|&x| !known.contains_key(&x));
+
+            if valid.len() == 1 {
+                new_known.push((*valid.iter().next().unwrap(), *opcode));
+            }
+        }
+
+        assert!(!new_known.is_empty());
+
+        for (opcode, numeric) in new_known {
+            possibilities.remove(&numeric);
+            known.insert(opcode, numeric);
+        }
+    }
+
+    let opcode_map: HashMap<Op, Opcode> = known
+        .iter()
+        .map(|(&opcode, &numeric)| (numeric, opcode))
+        .collect();
+
+    let mut registers = [0; 4];
+
+    for line in std::io::stdin().lock().lines() {
+        let line = line.expect("stdin read failed");
+
+        match crate::line(line.as_bytes().into()).expect("parse error").1 {
+            Line::Instruction(instruction) => {
+                registers = eval(opcode_map[&instruction[0]], registers, instruction);
+            }
+            Line::Empty => (),
+            x => panic!("Should not see anything but instructions here: {:?}", x),
+        }
+    }
+
+    println!("Register 0 contains {}", registers[0]);
 }
