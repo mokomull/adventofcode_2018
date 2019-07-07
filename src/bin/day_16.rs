@@ -107,7 +107,27 @@ fn line_parser() {
     assert_eq!(line(empty_string), Ok((empty_string, Empty)));
 }
 
-fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> usize {
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Opcode {
+    Addr,
+    Addi,
+    Mulr,
+    Muli,
+    Banr,
+    Bani,
+    Borr,
+    Bori,
+    Setr,
+    Seti,
+    Gtir,
+    Gtri,
+    Gtrr,
+    Eqir,
+    Eqri,
+    Eqrr,
+}
+
+fn which_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> Vec<Opcode> {
     let [_opcode, source_1_idx, source_2_idx, dest_idx] = instruction;
 
     let source_1 = before[source_1_idx];
@@ -125,37 +145,53 @@ fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> 
         .any(|(_, (b, a))| b != a);
 
     if mismatch_non_dest {
-        return 0;
+        return vec![];
     }
 
-    let operations = [
-        dest == source_1 + source_2,                          // addr
-        dest == source_1 + source_2_imm,                      // addi
-        dest == source_1 * source_2,                          // mulr
-        dest == source_1 * source_2_imm,                      // muli
-        dest == source_1 & source_2,                          // banr
-        dest == source_1 & source_2_imm,                      // bani
-        dest == source_1 | source_2,                          // borr
-        dest == source_1 | source_2_imm,                      // bori
-        dest == source_1,                                     // setr
-        dest == source_1_imm,                                 // seti
-        dest == if source_1_imm > source_2 { 1 } else { 0 },  // gtir
-        dest == if source_1 > source_2_imm { 1 } else { 0 },  // gtri
-        dest == if source_1 > source_2 { 1 } else { 0 },      // gtrr
-        dest == if source_1_imm == source_2 { 1 } else { 0 }, // eqir
-        dest == if source_1 == source_2_imm { 1 } else { 0 }, // eqri
-        dest == if source_1 == source_2 { 1 } else { 0 },     // eqrr
+    use Opcode::*;
+
+    let results_by_opcode = [
+        (Addr, source_1 + source_2),
+        (Addi, source_1 + source_2_imm),
+        (Mulr, source_1 * source_2),
+        (Muli, source_1 * source_2_imm),
+        (Banr, source_1 & source_2),
+        (Bani, source_1 & source_2_imm),
+        (Borr, source_1 | source_2),
+        (Bori, source_1 | source_2_imm),
+        (Setr, source_1),
+        (Seti, source_1_imm),
+        (Gtir, if source_1_imm > source_2 { 1 } else { 0 }),
+        (Gtri, if source_1 > source_2_imm { 1 } else { 0 }),
+        (Gtrr, if source_1 > source_2 { 1 } else { 0 }),
+        (Eqir, if source_1_imm == source_2 { 1 } else { 0 }),
+        (Eqri, if source_1 == source_2_imm { 1 } else { 0 }),
+        (Eqrr, if source_1 == source_2 { 1 } else { 0 }),
     ];
 
-    operations.iter().filter(|&&x| x).count()
+    results_by_opcode
+        .iter()
+        .filter_map(|&(opcode, result)| if dest == result { Some(opcode) } else { None })
+        .collect()
+}
+
+fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> usize {
+    which_opcodes(before, instruction, after).len()
 }
 
 #[test]
 fn test_how_many_opcodes() {
+    use Opcode::*;
+
     assert_eq!(
         how_many_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
         3
-    )
+    );
+
+    assert_eq!(
+        which_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
+        vec![Addi, Mulr, Seti]
+    );
 }
 
 fn main() {
