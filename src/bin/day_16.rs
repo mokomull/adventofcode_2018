@@ -27,10 +27,14 @@ named!(line(CompleteByteSlice) -> Line,
     alt!(before_or_after | opcode | empty)
 );
 
-fn four_integers<'a, T: std::str::FromStr + Copy>(
+fn four_integers<'a, T, U>(
     input: CompleteByteSlice<'a>,
     separator: &[u8],
-) -> nom::IResult<CompleteByteSlice<'a>, [T; 4], u32> {
+) -> nom::IResult<CompleteByteSlice<'a>, [T; 4], u32>
+where
+    T: std::str::FromStr<Err = U> + Copy,
+    U: std::fmt::Debug,
+{
     do_parse!(
         input,
         items: ws!(separated_list!(tag!(separator), nom::digit))
@@ -51,7 +55,7 @@ named!(before_or_after(CompleteByteSlice) -> Line,
     do_parse!(
         kind: alt!(tag!(&b"Before: "[..]) | tag!(&b"After:  "[..])) >>
         tag!(&b"["[..]) >>
-        items: call!(four_integers::<Reg>, b",") >>
+        items: call!(four_integers::<Reg, _>, b",") >>
         tag!(&b"]"[..]) >>
         (
             match &*kind {
@@ -65,7 +69,7 @@ named!(before_or_after(CompleteByteSlice) -> Line,
 
 named!(opcode(CompleteByteSlice) -> Line,
     do_parse!(
-        operations: call!(four_integers::<u64>, b" ") >>
+        operations: call!(four_integers::<u64, _>, b" ") >>
         (Line::Opcode(operations))
     )
 );
