@@ -128,58 +128,96 @@ enum Opcode {
     Eqrr,
 }
 
+use Opcode::*;
+
+const ALL_OPCODES: &[Opcode] = &[
+    Addr, Addi, Mulr, Muli, Banr, Bani, Borr, Bori, Setr, Seti, Gtir, Gtri, Gtrr, Eqir, Eqri, Eqrr,
+];
+
 fn which_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> Vec<Opcode> {
+    ALL_OPCODES
+        .iter()
+        .filter_map(|&opcode| {
+            if after == eval(opcode, before, instruction) {
+                Some(opcode)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+fn eval(opcode: Opcode, before: [Reg; 4], instruction: [Op; 4]) -> [Reg; 4] {
     let [_opcode, source_1_idx, source_2_idx, dest_idx] = instruction;
 
     let source_1 = before[source_1_idx];
     let source_2 = before[source_2_idx];
-    let dest = after[dest_idx];
 
     let source_1_imm = source_1_idx as Reg;
     let source_2_imm = source_2_idx as Reg;
 
-    let mismatch_non_dest = before
-        .iter()
-        .zip(&after)
-        .enumerate()
-        .filter(|&(i, _)| i != dest_idx)
-        .any(|(_, (b, a))| b != a);
+    let result_value = match opcode {
+        Addr => source_1 + source_2,
+        Addi => source_1 + source_2_imm,
+        Mulr => source_1 * source_2,
+        Muli => source_1 * source_2_imm,
+        Banr => source_1 & source_2,
+        Bani => source_1 & source_2_imm,
+        Borr => source_1 | source_2,
+        Bori => source_1 | source_2_imm,
+        Setr => source_1,
+        Seti => source_1_imm,
+        Gtir => {
+            if source_1_imm > source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Gtri => {
+            if source_1 > source_2_imm {
+                1
+            } else {
+                0
+            }
+        }
+        Gtrr => {
+            if source_1 > source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Eqir => {
+            if source_1_imm == source_2 {
+                1
+            } else {
+                0
+            }
+        }
+        Eqri => {
+            if source_1 == source_2_imm {
+                1
+            } else {
+                0
+            }
+        }
+        Eqrr => {
+            if source_1 == source_2 {
+                1
+            } else {
+                0
+            }
+        }
+    };
 
-    if mismatch_non_dest {
-        return vec![];
-    }
-
-    use Opcode::*;
-
-    let results_by_opcode = [
-        (Addr, source_1 + source_2),
-        (Addi, source_1 + source_2_imm),
-        (Mulr, source_1 * source_2),
-        (Muli, source_1 * source_2_imm),
-        (Banr, source_1 & source_2),
-        (Bani, source_1 & source_2_imm),
-        (Borr, source_1 | source_2),
-        (Bori, source_1 | source_2_imm),
-        (Setr, source_1),
-        (Seti, source_1_imm),
-        (Gtir, if source_1_imm > source_2 { 1 } else { 0 }),
-        (Gtri, if source_1 > source_2_imm { 1 } else { 0 }),
-        (Gtrr, if source_1 > source_2 { 1 } else { 0 }),
-        (Eqir, if source_1_imm == source_2 { 1 } else { 0 }),
-        (Eqri, if source_1 == source_2_imm { 1 } else { 0 }),
-        (Eqrr, if source_1 == source_2 { 1 } else { 0 }),
-    ];
-
-    results_by_opcode
-        .iter()
-        .filter_map(|&(opcode, result)| if dest == result { Some(opcode) } else { None })
-        .collect()
+    let mut result = before;
+    result[dest_idx] = result_value;
+    result
 }
 
 #[test]
 fn test_how_many_opcodes() {
-    use Opcode::*;
-
     assert_eq!(
         which_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
         vec![Addi, Mulr, Seti]
