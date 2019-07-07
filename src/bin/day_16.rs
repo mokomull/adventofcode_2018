@@ -226,13 +226,31 @@ fn main() {
 
     println!("{} instructions can be 3 or more opcodes", count);
 
-    for (opcode, opcode_sets) in possibilities {
-        let mut valid: HashSet<Opcode> = opcode_sets[0].iter().cloned().collect();
-        for other in opcode_sets {
-            let other_set: HashSet<Opcode> = other.iter().cloned().collect();
-            valid.retain(|&x| other_set.contains(&x));
+    let mut known: HashMap<Opcode, Op> = HashMap::new();
+
+    while !possibilities.is_empty() {
+        let mut new_known: Vec<(Opcode, Op)> = Vec::new();
+
+        for (opcode, opcode_sets) in &possibilities {
+            let mut valid: HashSet<Opcode> = opcode_sets[0].iter().cloned().collect();
+            for other in opcode_sets {
+                let other_set: HashSet<Opcode> = other.iter().cloned().collect();
+                valid.retain(|&x| other_set.contains(&x));
+            }
+            valid.retain(|&x| !known.contains_key(&x));
+
+            if valid.len() == 1 {
+                new_known.push((*valid.iter().next().unwrap(), *opcode));
+            }
         }
 
-        println!("{} could be any of {:?}", opcode, valid);
+        assert!(!new_known.is_empty());
+
+        for (opcode, numeric) in new_known {
+            possibilities.remove(&numeric);
+            known.insert(opcode, numeric);
+        }
     }
+
+    println!("Known: {:?}", known);
 }
