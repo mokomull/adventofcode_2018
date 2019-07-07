@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate nom;
 
+use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::io::BufRead;
 
@@ -107,7 +108,7 @@ fn line_parser() {
     assert_eq!(line(empty_string), Ok((empty_string, Empty)));
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 enum Opcode {
     Addr,
     Addi,
@@ -175,18 +176,9 @@ fn which_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> Vec
         .collect()
 }
 
-fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> usize {
-    which_opcodes(before, instruction, after).len()
-}
-
 #[test]
 fn test_how_many_opcodes() {
     use Opcode::*;
-
-    assert_eq!(
-        how_many_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
-        3
-    );
 
     assert_eq!(
         which_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
@@ -199,6 +191,8 @@ fn main() {
     let mut instruction = None;
     let mut after = None;
     let mut count = 0;
+
+    let mut possibilities: HashMap<Op, Vec<Vec<Opcode>>> = HashMap::new();
 
     for line in std::io::stdin().lock().lines() {
         let line = line.expect("stdin read failed");
@@ -213,18 +207,32 @@ fn main() {
                     break;
                 }
 
+                let opcode = instruction.expect("instruction not set")[0];
+
                 // but if otherwise we've been partially set, then panic.
-                let this_count = how_many_opcodes(
+                let opcodes = which_opcodes(
                     before.take().expect("before not set"),
                     instruction.take().expect("instruction not set"),
                     after.take().expect("after not set"),
                 );
-                if this_count >= 3 {
+                if opcodes.len() >= 3 {
                     count += 1;
                 }
+
+                possibilities.entry(opcode).or_insert(vec![]).push(opcodes)
             }
         }
     }
 
     println!("{} instructions can be 3 or more opcodes", count);
+
+    for (opcode, opcode_sets) in possibilities {
+        let mut valid: HashSet<Opcode> = opcode_sets[0].iter().cloned().collect();
+        for other in opcode_sets {
+            let other_set: HashSet<Opcode> = other.iter().cloned().collect();
+            valid.retain(|&x| other_set.contains(&x));
+        }
+
+        println!("{} could be any of {:?}", opcode, valid);
+    }
 }
