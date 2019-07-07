@@ -2,6 +2,7 @@
 extern crate nom;
 
 use std::convert::TryInto;
+use std::io::BufRead;
 
 use nom::types::CompleteByteSlice;
 use nom::ErrorKind::Custom;
@@ -155,4 +156,39 @@ fn test_how_many_opcodes() {
         how_many_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
         3
     )
+}
+
+fn main() {
+    let mut before = None;
+    let mut instruction = None;
+    let mut after = None;
+    let mut count = 0;
+
+    for line in std::io::stdin().lock().lines() {
+        let line = line.expect("stdin read failed");
+
+        match crate::line(line.as_bytes().into()).expect("parse error").1 {
+            Line::Before(x) => before = Some(x),
+            Line::Instruction(x) => instruction = Some(x),
+            Line::After(x) => after = Some(x),
+            Line::Empty => {
+                // the input is terminated by two empty lines
+                if before.is_none() && instruction.is_none() && after.is_none() {
+                    break;
+                }
+
+                // but if otherwise we've been partially set, then panic.
+                let this_count = how_many_opcodes(
+                    before.take().expect("before not set"),
+                    instruction.take().expect("instruction not set"),
+                    after.take().expect("after not set"),
+                );
+                if this_count >= 3 {
+                    count += 1;
+                }
+            }
+        }
+    }
+
+    println!("{} instructions can be 3 or more opcodes", count);
 }
