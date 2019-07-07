@@ -12,7 +12,7 @@ type Op = usize;
 #[derive(Debug, PartialEq)]
 enum Line {
     Before([Reg; 4]),
-    Opcode([Op; 4]),
+    Instruction([Op; 4]),
     After([Reg; 4]),
     Empty,
 }
@@ -25,7 +25,7 @@ fn create_error(input: CompleteByteSlice) -> nom::IResult<CompleteByteSlice, (),
 }
 
 named!(line(CompleteByteSlice) -> Line,
-    alt!(before_or_after | opcode | empty)
+    alt!(before_or_after | instruction | empty)
 );
 
 fn four_integers<'a, T, U>(
@@ -68,11 +68,11 @@ named!(before_or_after(CompleteByteSlice) -> Line,
     )
 );
 
-named!(opcode(CompleteByteSlice) -> Line,
+named!(instruction(CompleteByteSlice) -> Line,
     do_parse!(
         // no "separator" for four_integers, since it's already wrapped in ws!().
         operations: call!(four_integers::<Op, _>, b"") >>
-        (Line::Opcode(operations))
+        (Line::Instruction(operations))
     )
 );
 
@@ -95,7 +95,7 @@ fn line_parser() {
 
     assert_eq!(
         line(b"9 2 1 2"[..].into()),
-        Ok((empty_string, Opcode([9, 2, 1, 2])))
+        Ok((empty_string, Instruction([9, 2, 1, 2])))
     );
 
     assert_eq!(
@@ -106,8 +106,8 @@ fn line_parser() {
     assert_eq!(line(empty_string), Ok((empty_string, Empty)));
 }
 
-fn how_many_opcodes(before: [Reg; 4], opcode: [Op; 4], after: [Reg; 4]) -> usize {
-    let [_opcode, source_1_idx, source_2_idx, dest_idx] = opcode;
+fn how_many_opcodes(before: [Reg; 4], instruction: [Op; 4], after: [Reg; 4]) -> usize {
+    let [_opcode, source_1_idx, source_2_idx, dest_idx] = instruction;
 
     let source_1 = before[source_1_idx];
     let source_2 = before[source_2_idx];
