@@ -7,11 +7,12 @@ use nom::types::CompleteByteSlice;
 use nom::ErrorKind::Custom;
 
 type Reg = u64;
+type Op = usize;
 
 #[derive(Debug, PartialEq)]
 enum Line {
     Before([Reg; 4]),
-    Opcode([u64; 4]),
+    Opcode([Op; 4]),
     After([Reg; 4]),
     Empty,
 }
@@ -70,7 +71,7 @@ named!(before_or_after(CompleteByteSlice) -> Line,
 named!(opcode(CompleteByteSlice) -> Line,
     do_parse!(
         // no "separator" for four_integers, since it's already wrapped in ws!().
-        operations: call!(four_integers::<u64, _>, b"") >>
+        operations: call!(four_integers::<Op, _>, b"") >>
         (Line::Opcode(operations))
     )
 );
@@ -103,4 +104,55 @@ fn line_parser() {
     );
 
     assert_eq!(line(empty_string), Ok((empty_string, Empty)));
+}
+
+fn how_many_opcodes(before: [Reg; 4], opcode: [Op; 4], after: [Reg; 4]) -> usize {
+    let [_opcode, source_1_idx, source_2_idx, dest_idx] = opcode;
+
+    let source_1 = before[source_1_idx];
+    let source_2 = before[source_2_idx];
+    let dest = after[dest_idx];
+
+    let source_1_imm = source_1_idx as Reg;
+    let source_2_imm = source_2_idx as Reg;
+
+    let mismatch_non_dest = before
+        .iter()
+        .zip(&after)
+        .enumerate()
+        .filter(|&(i, _)| i != dest_idx)
+        .any(|(_, (b, a))| b != a);
+
+    if mismatch_non_dest {
+        return 0;
+    }
+
+    let operations = [
+        dest == source_1 + source_2,                          // addr
+        dest == source_1 + source_2_imm,                      // addi
+        dest == source_1 * source_2,                          // mulr
+        dest == source_1 * source_2_imm,                      // muli
+        dest == source_1 & source_2,                          // banr
+        dest == source_1 & source_2_imm,                      // bani
+        dest == source_1 | source_2,                          // borr
+        dest == source_1 | source_2_imm,                      // bori
+        dest == source_1,                                     // setr
+        dest == source_1_imm,                                 // seti
+        dest == if source_1_imm > source_2 { 1 } else { 0 },  // gtir
+        dest == if source_1 > source_2_imm { 1 } else { 0 },  // gtri
+        dest == if source_1 > source_2 { 1 } else { 0 },      // gtrr
+        dest == if source_1_imm == source_2 { 1 } else { 0 }, // eqir
+        dest == if source_1 == source_2_imm { 1 } else { 0 }, // eqri
+        dest == if source_1 == source_2 { 1 } else { 0 },     // eqrr
+    ];
+
+    operations.iter().filter(|&&x| x).count()
+}
+
+#[test]
+fn test_how_many_opcodes() {
+    assert_eq!(
+        how_many_opcodes([3, 2, 1, 1], [9, 2, 1, 2], [3, 2, 2, 1]),
+        3
+    )
 }
