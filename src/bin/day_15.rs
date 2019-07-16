@@ -325,7 +325,13 @@ fn test_next_action() {
     assert_eq!(next_action(&b, (4, 3)), Action::Move(Up));
 }
 
-fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction) {
+fn attack(
+    board: &mut Vec<Vec<Unit>>,
+    (row, col): (usize, usize),
+    dir: Direction,
+    elves: &mut usize,
+    goblins: &mut usize,
+) {
     let (other_row, other_col) = match dir {
         Left => (row, col - 1),
         Right => (row, col + 1),
@@ -336,6 +342,7 @@ fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction
     let new_unit = match board[other_row][other_col] {
         Goblin(x) => {
             if x <= 3 {
+                *goblins -= 1;
                 Empty
             } else {
                 Goblin(x - 3)
@@ -343,6 +350,7 @@ fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction
         }
         Elf(x) => {
             if x <= 3 {
+                *elves -= 1;
                 Empty
             } else {
                 Elf(x - 3)
@@ -357,7 +365,7 @@ fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction
 fn run(mut board: Vec<Vec<Unit>>) -> usize {
     let mut rounds = 0;
 
-    loop {
+    'round: loop {
         debug!("=== Starting round {}", rounds);
 
         let mut players = Vec::new();
@@ -379,15 +387,18 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
             }
         }
 
-        if elves == 0 || goblins == 0 {
-            break;
-        }
-
         for (row, col) in players {
-            // it may have been killed by a previous action in the same round
-            if board[row][col] == Empty {
-                debug!("skipped {}, {}", row, col);
-                continue;
+            match board[row][col] {
+                // it may have been killed by a previous action in the same round
+                Empty => {
+                    debug!("skipped {}, {}", row, col);
+                    continue;
+                }
+                Goblin(_) | Elf(_) if goblins == 0 || elves == 0 => {
+                    // No opponents left, and the round did not complete.
+                    break 'round;
+                }
+                _ => {}
             }
 
             let action = next_action(&board, (row, col));
@@ -408,7 +419,13 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
                     if let Action::Attack(dir) = next_action(&board, (new_row, new_col)) {
                         debug!("{}, {} would now attack {:?}", new_row, new_col, dir);
-                        attack(&mut board, (new_row, new_col), dir);
+                        attack(
+                            &mut board,
+                            (new_row, new_col),
+                            dir,
+                            &mut elves,
+                            &mut goblins,
+                        );
                     } else {
                         debug!(
                             "{}, {} still can't attack anything this round",
@@ -416,7 +433,9 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                         );
                     }
                 }
-                Action::Attack(dir) => attack(&mut board, (row, col), dir),
+                Action::Attack(dir) => {
+                    attack(&mut board, (row, col), dir, &mut elves, &mut goblins)
+                }
                 Action::Nothing => {}
             }
             debug!("");
@@ -437,7 +456,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
     debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
-    return (rounds - 1) * sum_hp;
+    return rounds * sum_hp;
 }
 
 #[cfg(test)]
