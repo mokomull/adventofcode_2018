@@ -438,22 +438,107 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
     return (rounds - 1) * sum_hp;
 }
 
-#[test]
-fn test_run() {
-    env_logger::Builder::from_default_env()
-        .is_test(true)
-        .default_format_timestamp(false)
-        .init();
+#[cfg(test)]
+static LOG_INITIALIZED: std::sync::Once = std::sync::Once::new();
 
-    let input = b"#######
+#[cfg(test)]
+fn do_test_run(input: &[u8], expected: usize) {
+    LOG_INITIALIZED.call_once(|| {
+        env_logger::Builder::from_default_env()
+            .is_test(true)
+            .default_format_timestamp(false)
+            .init();
+    });
+    let (remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
+    assert_eq!(remaining, CompleteByteSlice(&b""[..]));
+    assert_eq!(run(b), expected);
+}
+
+#[test]
+fn test_run_step_by_step() {
+    // This was the case the problem statement describes move-by-move.
+    do_test_run(
+        b"#######
 #.G...#
 #...EG#
 #.#.#G#
 #..G#E#
 #.....#
-#######";
-    let (_remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
-    assert_eq!(run(b), 27730);
+#######",
+        27730,
+    );
+}
+
+#[test]
+fn test_run_2() {
+    do_test_run(
+        b"#######
+#G..#E#
+#E#E.E#
+#G.##.#
+#...#E#
+#...E.#
+#######",
+        36334,
+    );
+}
+
+#[test]
+fn test_run_3() {
+    do_test_run(
+        b"#######
+#E..EG#
+#.#G.E#
+#E.##E#
+#G..#.#
+#..E#.#
+#######",
+        39514,
+    );
+}
+
+#[test]
+fn test_run_4() {
+    do_test_run(
+        b"#######
+#E.G#.#
+#.#G..#
+#G.#.G#
+#G..#.#
+#...E.#
+#######",
+        27755,
+    );
+}
+
+#[test]
+fn test_run_5() {
+    do_test_run(
+        b"#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######",
+        28944,
+    );
+}
+
+#[test]
+fn test_run_6() {
+    do_test_run(
+        b"#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########",
+        18740,
+    );
 }
 
 fn dump_board(board: &[Vec<Unit>], highlight_position: (usize, usize)) {
