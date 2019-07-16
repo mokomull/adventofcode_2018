@@ -324,6 +324,35 @@ fn test_next_action() {
     assert_eq!(next_action(&b, (4, 3)), Action::Move(Up));
 }
 
+fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction) {
+    let (other_row, other_col) = match dir {
+        Left => (row, col - 1),
+        Right => (row, col + 1),
+        Down => (row + 1, col),
+        Up => (row - 1, col),
+    };
+
+    let new_unit = match board[other_row][other_col] {
+        Goblin(x) => {
+            if x <= 3 {
+                Empty
+            } else {
+                Goblin(x - 3)
+            }
+        }
+        Elf(x) => {
+            if x <= 3 {
+                Empty
+            } else {
+                Elf(x - 3)
+            }
+        }
+        something_else => panic!("Tried to attack a {:?}", something_else),
+    };
+
+    board[other_row][other_col] = new_unit;
+}
+
 fn run(mut board: Vec<Vec<Unit>>) -> usize {
     let mut any_actions = true;
     let mut rounds = 0;
@@ -374,36 +403,19 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                     let unit = board[row][col];
                     board[row][col] = Empty;
                     board[new_row][new_col] = unit;
-                }
-                Action::Attack(dir) => {
-                    let (other_row, other_col) = match dir {
-                        Left => (row, col - 1),
-                        Right => (row, col + 1),
-                        Down => (row + 1, col),
-                        Up => (row - 1, col),
-                    };
 
-                    let new_unit = match board[other_row][other_col] {
-                        Goblin(x) => {
-                            if x <= 3 {
-                                Empty
-                            } else {
-                                Goblin(x - 3)
-                            }
-                        }
-                        Elf(x) => {
-                            if x <= 3 {
-                                Empty
-                            } else {
-                                Elf(x - 3)
-                            }
-                        }
-                        something_else => panic!("Tried to attack a {:?}", something_else),
-                    };
-
-                    board[other_row][other_col] = new_unit;
+                    if let Action::Attack(dir) = next_action(&board, (new_row, new_col)) {
+                        debug!("{}, {} would now attack {:?}", new_row, new_col, dir);
+                        attack(&mut board, (new_row, new_col), dir);
+                    } else {
+                        debug!(
+                            "{}, {} still can't attack anything this round",
+                            new_row, new_col
+                        );
+                    }
                 }
-                _ => {}
+                Action::Attack(dir) => attack(&mut board, (row, col), dir),
+                Action::Nothing => {}
             }
         }
 
