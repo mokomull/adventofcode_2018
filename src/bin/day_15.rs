@@ -420,7 +420,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
         })
         .sum();
 
-    println!("sum is {}, rounds is {}", sum_hp, rounds);
+    debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
     return (rounds - 1) * sum_hp;
 }
