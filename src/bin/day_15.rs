@@ -355,27 +355,33 @@ fn attack(board: &mut Vec<Vec<Unit>>, (row, col): (usize, usize), dir: Direction
 }
 
 fn run(mut board: Vec<Vec<Unit>>) -> usize {
-    let mut any_actions = true;
     let mut rounds = 0;
 
-    while any_actions {
+    loop {
         debug!("=== Starting round {}", rounds);
 
-        any_actions = false;
+        let mut players = Vec::new();
+        let mut goblins = 0;
+        let mut elves = 0;
+        for (row_num, row) in board.iter().enumerate() {
+            for (col_num, unit) in row.iter().enumerate() {
+                match unit {
+                    Goblin(_) => {
+                        goblins += 1;
+                        players.push((row_num, col_num));
+                    }
+                    Elf(_) => {
+                        elves += 1;
+                        players.push((row_num, col_num));
+                    }
+                    _ => {}
+                }
+            }
+        }
 
-        let players: Vec<(usize, usize)> = board
-            .iter()
-            .enumerate()
-            .flat_map(|(row, r)| {
-                r.iter()
-                    .enumerate()
-                    .filter_map(|(col, &unit)| match unit {
-                        Goblin(_) | Elf(_) => Some((row, col)),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect();
+        if elves == 0 || goblins == 0 {
+            break;
+        }
 
         for (row, col) in players {
             // it may have been killed by a previous action in the same round
@@ -387,10 +393,6 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
             let action = next_action(&board, (row, col));
             dump_board(&board, (row, col));
             debug!("{}, {} decided to {:?}", row, col, action);
-
-            if action != Action::Nothing {
-                any_actions = true;
-            }
 
             match action {
                 Action::Move(dir) => {
