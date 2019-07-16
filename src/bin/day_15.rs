@@ -5,6 +5,7 @@ extern crate nom;
 extern crate log;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::io::Read;
 
 use nom::types::CompleteByteSlice;
 
@@ -483,4 +484,16 @@ fn dump_board(board: &[Vec<Unit>], highlight_position: (usize, usize)) {
 
         debug!("{}", line);
     }
+}
+
+fn main() {
+    env_logger::Builder::from_default_env()
+        .default_format_timestamp(false)
+        .init();
+
+    let mut buf = Vec::new();
+    std::io::stdin().lock().read_to_end(&mut buf).expect("stdin read failed");
+
+    let board = crate::board(CompleteByteSlice(&buf)).unwrap().1;
+    println!("Outcome of combat is: {}", run(board));
 }
