@@ -384,9 +384,8 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
             }
 
             let action = next_action(&board, (row, col));
-            dump_board(&board);
+            dump_board(&board, (row, col));
             debug!("{}, {} decided to {:?}", row, col, action);
-            debug!("");
 
             if action != Action::Nothing {
                 any_actions = true;
@@ -417,6 +416,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                 Action::Attack(dir) => attack(&mut board, (row, col), dir),
                 Action::Nothing => {}
             }
+            debug!("");
         }
 
         rounds += 1;
@@ -455,17 +455,23 @@ fn test_run() {
     assert_eq!(run(b), 27730);
 }
 
-fn dump_board(board: &[Vec<Unit>]) {
-    for row in board {
+fn dump_board(board: &[Vec<Unit>], highlight_position: (usize, usize)) {
+    for (cur_row, row) in board.iter().enumerate() {
         let mut line = String::new();
-        for col in row {
+        for (cur_col, col) in row.iter().enumerate() {
             let c = match *col {
                 Wall => '#',
                 Empty => '.',
                 Goblin(_) => 'G',
                 Elf(_) => 'E',
             };
-            line.push(c);
+            if (cur_row, cur_col) == highlight_position {
+                line.push_str("\x1b[1m");
+                line.push(c);
+                line.push_str("\x1b[0m");
+            } else {
+                line.push(c);
+            }
         }
 
         for col in row {
