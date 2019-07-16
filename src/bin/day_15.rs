@@ -577,7 +577,10 @@ fn main() {
         .init();
 
     let mut buf = Vec::new();
-    std::io::stdin().lock().read_to_end(&mut buf).expect("stdin read failed");
+    std::io::stdin()
+        .lock()
+        .read_to_end(&mut buf)
+        .expect("stdin read failed");
 
     let board = crate::board(CompleteByteSlice(&buf)).unwrap().1;
     println!("Outcome of combat is: {}", run(board));
