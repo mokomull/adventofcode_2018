@@ -42,7 +42,7 @@ named!(board(CompleteByteSlice) -> Vec<Vec<Unit>>,
         rows: many1!(
             do_parse!(
                 row: many1!(unit) >>
-                opt!(tag!(&b"\n"[..])) >>
+                opt!(call!(nom::line_ending)) >>
                 (row)
             )
         ) >>

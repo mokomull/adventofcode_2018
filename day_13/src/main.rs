@@ -77,7 +77,7 @@ fn parse_map(input: &[u8]) -> (Vec<Vec<Segment>>, Carts) {
         rows: many1!(
             do_parse!(
                 row: parse_row >>
-                opt!(tag!(&b"\n"[..])) >>
+                opt!(call!(nom::line_ending)) >>
                 (row)
             )
         ) >>
