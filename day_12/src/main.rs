@@ -39,7 +39,8 @@ named!(input_file(nom::types::CompleteByteSlice) -> (Vec<Pot>, Vec<Pattern>),
     do_parse!(
         tag!("initial state: ") >>
         initial_state: many1!(pot) >>
-        tag!("\n\n") >>
+        call!(nom::line_ending) >>
+        call!(nom::line_ending) >>
         rules: ws!(many1!(rule)) >>
         (
             initial_state,
