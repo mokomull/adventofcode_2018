@@ -6,6 +6,7 @@ extern crate log;
 
 use std::collections::{BTreeSet, HashMap};
 use std::io::Read;
+use std::mem::{discriminant, Discriminant};
 
 use nom::types::CompleteByteSlice;
 
@@ -362,10 +363,10 @@ fn attack(
     board[other_row][other_col] = new_unit;
 }
 
-fn run(mut board: Vec<Vec<Unit>>) -> usize {
+fn run(mut board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
     let mut rounds = 0;
 
-    'round: loop {
+    let winner = 'round: loop {
         debug!("=== Starting round {}", rounds);
 
         let mut players = Vec::new();
@@ -394,9 +395,9 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                     debug!("skipped {}, {}", row, col);
                     continue;
                 }
-                Goblin(_) | Elf(_) if goblins == 0 || elves == 0 => {
+                unit @ Goblin(_) | unit @ Elf(_) if goblins == 0 || elves == 0 => {
                     // No opponents left, and the round did not complete.
-                    break 'round;
+                    break 'round discriminant(&unit);
                 }
                 _ => {}
             }
@@ -442,7 +443,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
         }
 
         rounds += 1;
-    }
+    };
 
     let sum_hp: usize = board
         .iter()
@@ -456,14 +457,14 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
     debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
-    return rounds * sum_hp;
+    return (winner, sum_hp * rounds);
 }
 
 #[cfg(test)]
 static LOG_INITIALIZED: std::sync::Once = std::sync::Once::new();
 
 #[cfg(test)]
-fn do_test_run(input: &[u8], expected: usize) {
+fn do_test_run(input: &[u8], expected_winner: Discriminant<Unit>, expected: usize) {
     LOG_INITIALIZED.call_once(|| {
         env_logger::Builder::from_default_env()
             .is_test(true)
@@ -472,7 +473,7 @@ fn do_test_run(input: &[u8], expected: usize) {
     });
     let (remaining, b) = board(CompleteByteSlice(&input[..])).unwrap();
     assert_eq!(remaining, CompleteByteSlice(&b""[..]));
-    assert_eq!(run(b), expected);
+    assert_eq!(run(b), (expected_winner, expected));
 }
 
 #[test]
@@ -486,6 +487,7 @@ fn test_run_step_by_step() {
 #..G#E#
 #.....#
 #######",
+        discriminant(&Goblin(1)),
         27730,
     );
 }
@@ -500,6 +502,7 @@ fn test_run_2() {
 #...#E#
 #...E.#
 #######",
+        discriminant(&Elf(1)),
         36334,
     );
 }
@@ -514,6 +517,7 @@ fn test_run_3() {
 #G..#.#
 #..E#.#
 #######",
+        discriminant(&Elf(1)),
         39514,
     );
 }
@@ -528,6 +532,7 @@ fn test_run_4() {
 #G..#.#
 #...E.#
 #######",
+        discriminant(&Goblin(1)),
         27755,
     );
 }
@@ -542,6 +547,7 @@ fn test_run_5() {
 #E#G#G#
 #...#G#
 #######",
+        discriminant(&Goblin(1)),
         28944,
     );
 }
@@ -558,6 +564,7 @@ fn test_run_6() {
 #.G...G.#
 #.....G.#
 #########",
+        discriminant(&Goblin(1)),
         18740,
     );
 }
@@ -604,5 +611,5 @@ fn main() {
         .expect("stdin read failed");
 
     let board = crate::board(CompleteByteSlice(&buf)).unwrap().1;
-    println!("Outcome of combat is: {}", run(board));
+    println!("Outcome of combat is: {}", run(board).1);
 }
