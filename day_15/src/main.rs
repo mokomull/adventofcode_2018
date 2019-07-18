@@ -4,7 +4,7 @@ extern crate nom;
 #[macro_use]
 extern crate log;
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 use std::io::Read;
 
 use nom::types::CompleteByteSlice;
