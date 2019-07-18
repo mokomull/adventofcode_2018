@@ -328,6 +328,7 @@ fn test_next_action() {
 
 fn attack(
     board: &mut Vec<Vec<Unit>>,
+    elf_attack_power: usize,
     (row, col): (usize, usize),
     dir: Direction,
     elves: &mut usize,
@@ -346,7 +347,7 @@ fn attack(
                 *goblins -= 1;
                 Empty
             } else {
-                Goblin(x - 3)
+                Goblin(x - elf_attack_power)
             }
         }
         Elf(x) => {
@@ -363,7 +364,10 @@ fn attack(
     board[other_row][other_col] = new_unit;
 }
 
-fn run(mut board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
+fn run_with_attack_power(
+    mut board: Vec<Vec<Unit>>,
+    elf_attack_power: usize,
+) -> (Discriminant<Unit>, usize) {
     let mut rounds = 0;
 
     let winner = 'round: loop {
@@ -422,6 +426,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
                         debug!("{}, {} would now attack {:?}", new_row, new_col, dir);
                         attack(
                             &mut board,
+                            elf_attack_power,
                             (new_row, new_col),
                             dir,
                             &mut elves,
@@ -434,9 +439,14 @@ fn run(mut board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
                         );
                     }
                 }
-                Action::Attack(dir) => {
-                    attack(&mut board, (row, col), dir, &mut elves, &mut goblins)
-                }
+                Action::Attack(dir) => attack(
+                    &mut board,
+                    elf_attack_power,
+                    (row, col),
+                    dir,
+                    &mut elves,
+                    &mut goblins,
+                ),
                 Action::Nothing => {}
             }
             debug!("");
@@ -458,6 +468,10 @@ fn run(mut board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
     debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
     return (winner, sum_hp * rounds);
+}
+
+fn run(board: Vec<Vec<Unit>>) -> (Discriminant<Unit>, usize) {
+    run_with_attack_power(board, 3)
 }
 
 #[cfg(test)]
