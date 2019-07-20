@@ -582,6 +582,41 @@ fn test_run_6() {
     );
 }
 
+fn run_without_killing_elf(board: Vec<Vec<Unit>>) -> usize {
+    for elf_attack_power in 4.. {
+        let attack_power = |_attacker: &Unit, receiver: &Unit| -> Option<usize> {
+            match *receiver {
+                Elf(x) if x < 3 => return None,
+                Elf(_) => return Some(3),
+                Goblin(_) => return Some(elf_attack_power),
+                wtf => panic!("Tried to attack a {:?}", wtf),
+            }
+        };
+
+        if let Some(ret) = run_with_attack_power(board.clone(), attack_power) {
+            return ret;
+        }
+    }
+    panic!("No flawless Elf victory was ever observed")
+}
+
+#[test]
+fn test_run_without_killing_elf() {
+    let b = board(
+        b"#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######"[..]
+            .into(),
+    )
+    .unwrap()
+    .1;
+    assert_eq!(run_without_killing_elf(b), 4988);
+}
+
 fn dump_board(board: &[Vec<Unit>], highlight_position: (usize, usize)) {
     for (cur_row, row) in board.iter().enumerate() {
         let mut line = String::new();
@@ -624,5 +659,10 @@ fn main() {
         .expect("stdin read failed");
 
     let board = crate::board(CompleteByteSlice(&buf)).unwrap().1;
-    println!("Outcome of combat is: {}", run(board));
+    println!("Outcome of combat is: {}", run(board.clone()));
+
+    println!(
+        "Outcome of combat with no Elf deaths: {}",
+        run_without_killing_elf(board)
+    )
 }
