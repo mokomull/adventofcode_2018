@@ -325,13 +325,17 @@ fn test_next_action() {
     assert_eq!(next_action(&b, (4, 3)), Action::Move(Up));
 }
 
-fn attack(
+fn attack<T>(
     board: &mut Vec<Vec<Unit>>,
+    attack_power: T,
     (row, col): (usize, usize),
     dir: Direction,
     elves: &mut usize,
     goblins: &mut usize,
-) {
+) -> Option<()>
+where
+    T: FnOnce(&Unit, &Unit) -> Option<usize>,
+{
     let (other_row, other_col) = match dir {
         Left => (row, col - 1),
         Right => (row, col + 1),
@@ -339,30 +343,36 @@ fn attack(
         Up => (row - 1, col),
     };
 
+    let this_attack = attack_power(&board[row][col], &board[other_row][other_col])?;
+
     let new_unit = match board[other_row][other_col] {
         Goblin(x) => {
-            if x <= 3 {
+            if x <= this_attack {
                 *goblins -= 1;
                 Empty
             } else {
-                Goblin(x - 3)
+                Goblin(x - this_attack)
             }
         }
         Elf(x) => {
-            if x <= 3 {
+            if x <= this_attack {
                 *elves -= 1;
                 Empty
             } else {
-                Elf(x - 3)
+                Elf(x - this_attack)
             }
         }
         something_else => panic!("Tried to attack a {:?}", something_else),
     };
 
     board[other_row][other_col] = new_unit;
+    Some(())
 }
 
-fn run(mut board: Vec<Vec<Unit>>) -> usize {
+fn run_with_attack_power<T>(mut board: Vec<Vec<Unit>>, mut attack_power: T) -> Option<usize>
+where
+    T: FnMut(&Unit, &Unit) -> Option<usize>,
+{
     let mut rounds = 0;
 
     'round: loop {
@@ -421,6 +431,7 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                         debug!("{}, {} would now attack {:?}", new_row, new_col, dir);
                         attack(
                             &mut board,
+                            &mut attack_power,
                             (new_row, new_col),
                             dir,
                             &mut elves,
@@ -433,9 +444,14 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
                         );
                     }
                 }
-                Action::Attack(dir) => {
-                    attack(&mut board, (row, col), dir, &mut elves, &mut goblins)
-                }
+                Action::Attack(dir) => attack(
+                    &mut board,
+                    &mut attack_power,
+                    (row, col),
+                    dir,
+                    &mut elves,
+                    &mut goblins,
+                )?,
                 Action::Nothing => {}
             }
             debug!("");
@@ -456,7 +472,11 @@ fn run(mut board: Vec<Vec<Unit>>) -> usize {
 
     debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
-    return rounds * sum_hp;
+    return Some(rounds * sum_hp);
+}
+
+fn run(board: Vec<Vec<Unit>>) -> usize {
+    run_with_attack_power(board, |_, _| Some(3)).expect("closure never returns None")
 }
 
 #[cfg(test)]
