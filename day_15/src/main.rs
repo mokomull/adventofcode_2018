@@ -625,5 +625,13 @@ fn main() {
         .expect("stdin read failed");
 
     let board = crate::board(CompleteByteSlice(&buf)).unwrap().1;
-    println!("Outcome of combat is: {}", run(board).1);
+    println!("Outcome of combat is: {}", run(board.clone()).1);
+
+    for i in 4..=std::usize::MAX {
+        let (winner, outcome) = run_with_attack_power(board.clone(), i);
+        if winner == discriminant(&Elf(1)) {
+            println!("Outcome of combat with an elf winner: {}", outcome);
+            break;
+        }
+    }
 }
