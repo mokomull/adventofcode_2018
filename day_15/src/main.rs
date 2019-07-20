@@ -472,7 +472,7 @@ where
 
     debug!("sum is {}, rounds is {}", sum_hp, rounds);
 
-    return Some(rounds * sum_hp);
+    Some(rounds * sum_hp)
 }
 
 fn run(board: Vec<Vec<Unit>>) -> usize {
@@ -586,9 +586,9 @@ fn run_without_killing_elf(board: Vec<Vec<Unit>>) -> usize {
     for elf_attack_power in 4.. {
         let attack_power = |_attacker: &Unit, receiver: &Unit| -> Option<usize> {
             match *receiver {
-                Elf(x) if x < 3 => return None,
-                Elf(_) => return Some(3),
-                Goblin(_) => return Some(elf_attack_power),
+                Elf(x) if x < 3 => None,
+                Elf(_) => Some(3),
+                Goblin(_) => Some(elf_attack_power),
                 wtf => panic!("Tried to attack a {:?}", wtf),
             }
         };
