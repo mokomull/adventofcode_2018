@@ -12,7 +12,7 @@ struct Claim {
     height: usize,
 }
 
-#[allow(clippy::cyclomatic_complexity)]
+#[allow(clippy::cognitive_complexity)]
 fn parse_claim(input: &str) -> Option<Claim> {
     use nom::digit;
     let parsed = ws!(

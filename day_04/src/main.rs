@@ -19,7 +19,7 @@ struct Record {
     action: Action,
 }
 
-#[allow(clippy::cyclomatic_complexity)]
+#[allow(clippy::cognitive_complexity)]
 fn parse_record(input: &str) -> Record {
     use nom::digit;
 
