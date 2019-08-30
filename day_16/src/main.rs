@@ -6,7 +6,6 @@ use std::convert::TryInto;
 use std::io::BufRead;
 
 use nom::types::CompleteByteSlice;
-use nom::ErrorKind::Custom;
 
 type Reg = u64;
 type Op = usize;
@@ -61,9 +60,9 @@ named!(before_or_after(CompleteByteSlice) -> Line,
         items: call!(four_integers::<Reg, _>, b",") >>
         tag!(&b"]"[..]) >>
         (
-            match &*kind {
-                &b"Before: " => Line::Before(items),
-                &b"After:  " => Line::After(items),
+            match *kind {
+                b"Before: " => Line::Before(items),
+                b"After:  " => Line::After(items),
                 _ => panic!("parser bug: neither before nore after")
             }
         )
@@ -257,7 +256,10 @@ fn main() {
                     count += 1;
                 }
 
-                possibilities.entry(opcode).or_insert(vec![]).push(opcodes)
+                possibilities
+                    .entry(opcode)
+                    .or_insert_with(|| vec![])
+                    .push(opcodes)
             }
         }
     }
