@@ -1,6 +1,7 @@
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::digit1;
+use nom::character::complete::{digit1, newline};
+use nom::multi::separated_list;
 use nom::sequence::tuple;
 use nom::IResult;
 use nom::ParseTo;
@@ -58,6 +59,10 @@ fn vein(input: &[u8]) -> IResult<&[u8], Vein> {
     alt((xrange, yrange))(input)
 }
 
+fn veins(input: &[u8]) -> IResult<&[u8], Vec<Vein>> {
+    separated_list(newline, vein)(input)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -71,5 +76,37 @@ mod test {
             vein(b"x=498, y=2..4"),
             Ok((&b""[..], Vein::YRange { x: 498, y: 2..=4 }))
         );
+    }
+
+    #[test]
+    fn test_veins() {
+        assert_eq!(
+            veins(
+                b"x=495, y=2..7
+y=7, x=495..501
+x=501, y=3..7
+x=498, y=2..4
+x=506, y=1..2
+x=498, y=10..13
+x=504, y=10..13
+y=13, x=498..504"
+            ),
+            Ok((
+                &b""[..],
+                vec![
+                    Vein::YRange { x: 495, y: 2..=7 },
+                    Vein::XRange { y: 7, x: 495..=501 },
+                    Vein::YRange { x: 501, y: 3..=7 },
+                    Vein::YRange { x: 498, y: 2..=4 },
+                    Vein::YRange { x: 506, y: 1..=2 },
+                    Vein::YRange { x: 498, y: 10..=13 },
+                    Vein::YRange { x: 504, y: 10..=13 },
+                    Vein::XRange {
+                        y: 13,
+                        x: 498..=504
+                    },
+                ]
+            ))
+        )
     }
 }
