@@ -7,7 +7,7 @@ use nom::ParseTo;
 use std::ops::RangeInclusive;
 
 #[derive(Debug, Eq, PartialEq)]
-enum ClayEntry {
+enum Vein {
     XRange { y: usize, x: RangeInclusive<usize> },
     YRange { x: usize, y: RangeInclusive<usize> },
 }
@@ -18,7 +18,7 @@ fn integer<T: std::str::FromStr>(input: &[u8]) -> IResult<&[u8], T> {
     Ok((rest, result))
 }
 
-fn xrange(input: &[u8]) -> IResult<&[u8], ClayEntry> {
+fn xrange(input: &[u8]) -> IResult<&[u8], Vein> {
     let (rest, (_, y, _, startx, _, endx)) = tuple((
         tag(b"y="),
         integer,
@@ -29,14 +29,14 @@ fn xrange(input: &[u8]) -> IResult<&[u8], ClayEntry> {
     ))(input)?;
     Ok((
         rest,
-        ClayEntry::XRange {
+        Vein::XRange {
             y,
             x: startx..=endx,
         },
     ))
 }
 
-fn yrange(input: &[u8]) -> IResult<&[u8], ClayEntry> {
+fn yrange(input: &[u8]) -> IResult<&[u8], Vein> {
     let (rest, (_, x, _, starty, _, endy)) = tuple((
         tag(b"x="),
         integer,
@@ -47,14 +47,14 @@ fn yrange(input: &[u8]) -> IResult<&[u8], ClayEntry> {
     ))(input)?;
     Ok((
         rest,
-        ClayEntry::YRange {
+        Vein::YRange {
             x,
             y: starty..=endy,
         },
     ))
 }
 
-fn clay_entry(input: &[u8]) -> IResult<&[u8], ClayEntry> {
+fn vein(input: &[u8]) -> IResult<&[u8], Vein> {
     alt((xrange, yrange))(input)
 }
 
@@ -64,12 +64,12 @@ mod test {
     #[test]
     fn test_single_entries() {
         assert_eq!(
-            clay_entry(b"y=7, x=495..501"),
-            Ok((&b""[..], ClayEntry::XRange { y: 7, x: 495..=501 }))
+            vein(b"y=7, x=495..501"),
+            Ok((&b""[..], Vein::XRange { y: 7, x: 495..=501 }))
         );
         assert_eq!(
-            clay_entry(b"x=498, y=2..4"),
-            Ok((&b""[..], ClayEntry::YRange { x: 498, y: 2..=4 }))
+            vein(b"x=498, y=2..4"),
+            Ok((&b""[..], Vein::YRange { x: 498, y: 2..=4 }))
         );
     }
 }
