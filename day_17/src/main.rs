@@ -63,9 +63,44 @@ fn veins(input: &[u8]) -> IResult<&[u8], Vec<Vein>> {
     separated_list(newline, vein)(input)
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum Square {
+    Empty,
+    Clay,
+    Sand,
+    WaterResting,
+    WaterThrough,
+}
+
+fn parse_scan(input: &[u8]) -> ((usize, usize), Vec<Vec<Square>>) {
+    let veins = veins(input);
+
+    let min_x = veins
+        .unwrap().1
+        .iter()
+        .map(|vein| match vein {
+            Vein::XRange {x, ..} => x.start(),
+            Vein::YRange {x, ..} => x,
+        })
+        .min()
+        .unwrap() - 1; // want to include a whole column of Sand on the left
+
+    let mut result = vec![vec![Square::Sand; unimplemented!("I need to actually compute all four bounds, not just min_x")]];
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    const EXAMPLE_INPUT: &[u8] = b"x=495, y=2..7
+y=7, x=495..501
+x=501, y=3..7
+x=498, y=2..4
+x=506, y=1..2
+x=498, y=10..13
+x=504, y=10..13
+y=13, x=498..504";
+
     #[test]
     fn test_single_entries() {
         assert_eq!(
@@ -81,16 +116,7 @@ mod test {
     #[test]
     fn test_veins() {
         assert_eq!(
-            veins(
-                b"x=495, y=2..7
-y=7, x=495..501
-x=501, y=3..7
-x=498, y=2..4
-x=506, y=1..2
-x=498, y=10..13
-x=504, y=10..13
-y=13, x=498..504"
-            ),
+            veins(EXAMPLE_INPUT),
             Ok((
                 &b""[..],
                 vec![
@@ -107,6 +133,33 @@ y=13, x=498..504"
                     },
                 ]
             ))
+        )
+    }
+
+    #[test]
+    fn test_parse_scan() {
+        use super::Square::{Clay as C, Sand as S};
+        assert_eq!(
+            parse_scan(EXAMPLE_INPUT),
+            (
+                ((500 - 494), 0),
+                vec![
+                    vec![S, S, S, S, S, S, S, S, S, S, S, S, S, S],
+                    vec![S, S, S, S, S, S, S, S, S, S, S, S, C, S],
+                    vec![S, C, S, S, C, S, S, S, S, S, S, S, C, S],
+                    vec![S, C, S, S, C, S, S, C, S, S, S, S, S, S],
+                    vec![S, C, S, S, C, S, S, C, S, S, S, S, S, S],
+                    vec![S, C, S, S, S, S, S, C, S, S, S, S, S, S],
+                    vec![S, C, S, S, S, S, S, C, S, S, S, S, S, S],
+                    vec![S, C, C, C, C, C, C, C, S, S, S, S, S, S],
+                    vec![S, S, S, S, S, S, S, S, S, S, S, S, S, S],
+                    vec![S, S, S, S, S, S, S, S, S, S, S, S, S, S],
+                    vec![S, S, S, S, C, S, S, S, S, S, C, S, S, S],
+                    vec![S, S, S, S, C, S, S, S, S, S, C, S, S, S],
+                    vec![S, S, S, S, C, S, S, S, S, S, C, S, S, S],
+                    vec![S, S, S, S, C, C, C, C, C, C, C, S, S, S],
+                ]
+            )
         )
     }
 }
