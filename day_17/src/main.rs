@@ -73,19 +73,34 @@ enum Square {
 }
 
 fn parse_scan(input: &[u8]) -> ((usize, usize), Vec<Vec<Square>>) {
-    let veins = veins(input);
+    let veins = veins(input).unwrap().1;
+    let (spring_x, spring_y) = (500, 0);
 
-    let min_x = veins
-        .unwrap().1
+    let xs = veins
         .iter()
-        .map(|vein| match vein {
-            Vein::XRange {x, ..} => x.start(),
-            Vein::YRange {x, ..} => x,
+        .flat_map(|vein| match vein {
+            Vein::XRange { ref x, .. } => x.clone(),
+            Vein::YRange { ref x, .. } => *x..=*x,
         })
-        .min()
-        .unwrap() - 1; // want to include a whole column of Sand on the left
+        /* Option<integer type> was an easy cop-out for an iterator that yields a single value; I
+        tried using the slightly more obvious [spring_x], but for some reason that becomes a
+        temporary whose into_iter() borrows against it instead. */
+        .chain(Some(spring_x));
+    let ys = veins
+        .iter()
+        .flat_map(|vein| match vein {
+            Vein::XRange { ref y, .. } => *y..=*y,
+            Vein::YRange { ref y, .. } => y.clone(),
+        })
+        .chain(Some(spring_y));
+    let min_x = xs.clone().min().unwrap() - 1;
+    let max_x = xs.max().unwrap() + 1;
+    let min_y = ys.clone().min().unwrap();
+    let max_y = ys.max().unwrap();
 
-    let mut result = vec![vec![Square::Sand; unimplemented!("I need to actually compute all four bounds, not just min_x")]];
+    let mut result = vec![vec![Square::Sand; max_x - min_x + 1]; max_y - min_y + 1];
+
+    ((spring_x - min_x, spring_y - min_y), result)
 }
 
 #[cfg(test)]
