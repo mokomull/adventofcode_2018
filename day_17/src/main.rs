@@ -100,6 +100,21 @@ fn parse_scan(input: &[u8]) -> ((usize, usize), Vec<Vec<Square>>) {
 
     let mut result = vec![vec![Square::Sand; max_x - min_x + 1]; max_y - min_y + 1];
 
+    for vein in veins {
+        match vein {
+            Vein::XRange { x: xs, y } => {
+                for x in xs {
+                    result[y - min_y][x - min_x] = Square::Clay;
+                }
+            }
+            Vein::YRange { x, y: ys } => {
+                for y in ys {
+                    result[y - min_y][x - min_x] = Square::Clay;
+                }
+            }
+        }
+    }
+
     ((spring_x - min_x, spring_y - min_y), result)
 }
 
