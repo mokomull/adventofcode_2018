@@ -118,6 +118,34 @@ fn parse_scan(input: &[u8]) -> ((usize, usize), Vec<Vec<Square>>) {
     ((spring_x - min_x, spring_y - min_y), result)
 }
 
+fn count_reachable(spring: (usize, usize), ground: &Vec<Vec<Square>>) -> usize {
+    use std::collections::{HashSet, VecDeque};
+    use Square::Sand;
+
+    let mut reached: HashSet<(usize, usize)> = HashSet::new();
+    let mut to_visit = VecDeque::from(vec![spring]);
+
+    while !to_visit.is_empty() {
+        let (x, y) = to_visit.pop_front().unwrap();
+        if !reached.insert((x, y)) {
+            continue;
+        }
+        println!("visiting {:?} for the first time", (x, y));
+
+        if let Some(Sand) = ground.get(y + 1).and_then(|row| row.get(x)) {
+            to_visit.push_back((x, y + 1));
+        }
+        if let Some(Sand) = ground[y].get(x.wrapping_sub(1)) {
+            to_visit.push_back((x - 1, y));
+        }
+        if let Some(Sand) = ground[y].get(x + 1) {
+            to_visit.push_back((x + 1, y));
+        }
+    }
+
+    reached.len()
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -191,5 +219,11 @@ y=13, x=498..504";
                 ]
             )
         )
+    }
+
+    #[test]
+    fn test_count() {
+        let (spring, ground) = parse_scan(EXAMPLE_INPUT);
+        assert_eq!(count_reachable(spring, &ground), 57);
     }
 }
