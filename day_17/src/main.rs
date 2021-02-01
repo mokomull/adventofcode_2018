@@ -123,6 +123,9 @@ fn count_reachable(spring: (usize, usize), ground: &mut Vec<Vec<Square>>) -> usi
 
     ground
         .iter()
+        // "ignore tiles with a y coordinate smaller than the smallest y coordinate in your scan
+        // data"
+        .skip_while(|row| !row.iter().any(|square| square == &Square::Clay))
         .map(|row| {
             row.iter()
                 .filter(|&square| {
@@ -131,7 +134,6 @@ fn count_reachable(spring: (usize, usize), ground: &mut Vec<Vec<Square>>) -> usi
                 .count()
         })
         .sum::<usize>()
-        - 1 // we visited the spring, but don't count it.
 }
 
 fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
