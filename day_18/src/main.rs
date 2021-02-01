@@ -3,7 +3,7 @@ use nom::multi::{many1, separated_list1};
 use nom::{IResult, Parser};
 use std::io::Read;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 enum Acre {
     Open,
     Trees,
@@ -84,7 +84,22 @@ fn main() {
 fn iterate(input: &Vec<Vec<Acre>>, count: usize) -> usize {
     let mut north_pole = input.clone();
 
-    for _ in 0..count {
+    let mut seen = std::collections::HashMap::new();
+
+    for i in 0..count {
+        if let Some(cycle_start) = seen.insert(north_pole.clone(), i) {
+            let cycle_len = i - cycle_start;
+            let smaller_i = cycle_start + (count - cycle_start) % cycle_len;
+
+            north_pole = seen
+                .iter()
+                .find(|&(_, found_index)| found_index == &smaller_i)
+                .expect("should have found the index")
+                .0
+                .clone();
+            break;
+        }
+
         north_pole = advance(&north_pole);
     }
 
