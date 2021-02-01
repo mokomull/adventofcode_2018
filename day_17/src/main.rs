@@ -211,6 +211,16 @@ fn main() {
     let (spring, mut ground) = parse_scan(input.as_bytes());
     let part1 = count_reachable(spring, &mut ground);
     dbg!(part1);
+
+    let part2 = ground
+        .iter()
+        .map(|row| {
+            row.iter()
+                .filter(|&square| square == &Square::WaterResting)
+                .count()
+        })
+        .sum::<usize>();
+    dbg!(part2);
 }
 
 #[cfg(test)]
