@@ -74,7 +74,17 @@ fn main() {
 
     let mut north_pole = area(&input);
 
-    for _ in 0..10 {
+    let part1 = iterate(&north_pole, 10);
+    dbg!(part1);
+
+    let part2 = iterate(&north_pole, 1000000000);
+    dbg!(part2);
+}
+
+fn iterate(input: &Vec<Vec<Acre>>, count: usize) -> usize {
+    let mut north_pole = input.clone();
+
+    for _ in 0..count {
         north_pole = advance(&north_pole);
     }
 
@@ -88,8 +98,7 @@ fn main() {
         .flatten()
         .filter(|&acre| acre == &Acre::Lumberyard)
         .count();
-    let part1 = trees * lumberyards;
-    dbg!(part1);
+    trees * lumberyards
 }
 
 #[cfg(test)]
