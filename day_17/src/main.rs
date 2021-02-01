@@ -5,6 +5,7 @@ use nom::multi::separated_list;
 use nom::sequence::tuple;
 use nom::IResult;
 use nom::ParseTo;
+use std::io::Read;
 use std::ops::RangeInclusive;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -198,7 +199,15 @@ where
 }
 
 fn main() {
-    unimplemented!();
+    let mut input = String::new();
+    std::io::stdin()
+        .lock()
+        .read_to_string(&mut input)
+        .expect("could not read stdin");
+
+    let (spring, mut ground) = parse_scan(input.as_bytes());
+    let part1 = count_reachable(spring, &mut ground);
+    dbg!(part1);
 }
 
 #[cfg(test)]
