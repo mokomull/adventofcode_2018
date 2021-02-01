@@ -58,7 +58,7 @@ fn count_adjacent(source: &Vec<Vec<Acre>>, x: usize, y: usize, needle: Acre) -> 
 
     ((x as isize - 1)..=(x as isize + 1))
         .cartesian_product((y as isize - 1)..=(y as isize + 1))
-        .filter(|&(x1, y1)| x1 != x as isize && y1 != y as isize)
+        .filter(|&loc| loc != (x as isize, y as isize))
         .map(|(x1, y1)| source.get(x1 as usize).and_then(|row| row.get(y1 as usize)))
         .filter(|&haystack| haystack == Some(&needle))
         .count()
