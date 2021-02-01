@@ -129,7 +129,8 @@ fn count_reachable(spring: (usize, usize), ground: &mut Vec<Vec<Square>>) -> usi
                 })
                 .count()
         })
-        .sum()
+        .sum::<usize>()
+        - 1 // we visited the spring, but don't count it.
 }
 
 fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
