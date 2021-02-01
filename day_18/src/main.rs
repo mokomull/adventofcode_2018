@@ -72,7 +72,7 @@ fn main() {
         .read_to_string(&mut input)
         .expect("could not read stdin");
 
-    let mut north_pole = area(&input);
+    let north_pole = area(&input);
 
     let part1 = iterate(&north_pole, 10);
     dbg!(part1);
