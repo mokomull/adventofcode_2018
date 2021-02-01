@@ -146,13 +146,49 @@ fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
                     // if below me is standing water or clay, then try running
                     // left and right
                     visit((x - 1, y), ground);
-                    match ground.get(y).and_then(|row| row.get(x - 1)).cloned() {
-                        Some(Square::Clay) | Some(Square::WaterResting) => {
-                            ground[y][x] = Square::WaterResting;
-                        }
-                        _ => (),
-                    }
                     visit((x + 1, y), ground);
+
+                    let mut should_be_resting = true;
+
+                    // look to our left
+                    for i in (0..(x - 1)).rev() {
+                        match ground.get(y).and_then(|row| row.get(i)) {
+                            None | Some(Square::Sand) => {
+                                // if we find sand before we find clay, then we know water is not
+                                // resting in this row.
+                                should_be_resting = false;
+                                break;
+                            }
+                            Some(Square::Clay) | Some(Square::WaterResting) => {
+                                // stop the search once we know the answer
+                                break;
+                            }
+                            // but keep searching if all we have is water
+                            Some(Square::WaterThrough) => (),
+                        }
+                    }
+
+                    // and same to our right
+                    for i in (x + 1).. {
+                        match ground.get(y).and_then(|row| row.get(i)) {
+                            None | Some(Square::Sand) => {
+                                // if we find sand before we find clay, then we know water is not
+                                // resting in this row.
+                                should_be_resting = false;
+                                break;
+                            }
+                            Some(Square::Clay) | Some(Square::WaterResting) => {
+                                // stop the search once we know the answer
+                                break;
+                            }
+                            // but keep searching if all we have is water
+                            Some(Square::WaterThrough) => (),
+                        }
+                    }
+
+                    if should_be_resting {
+                        ground[y][x] = Square::WaterResting;
+                    }
                 }
                 None | Some(Square::WaterThrough) => (),
                 Some(Square::Sand) => panic!("visited below and it's still Sand"),
