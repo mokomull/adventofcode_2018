@@ -1,6 +1,6 @@
 use nom::branch::alt;
 use nom::bytes::complete::tag;
-use nom::character::complete::{digit1, newline};
+use nom::character::complete::{digit1, line_ending};
 use nom::multi::separated_list;
 use nom::sequence::tuple;
 use nom::IResult;
@@ -61,7 +61,7 @@ fn vein(input: &[u8]) -> IResult<&[u8], Vein> {
 }
 
 fn veins(input: &[u8]) -> IResult<&[u8], Vec<Vein>> {
-    separated_list(newline, vein)(input)
+    separated_list(line_ending, vein)(input)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
