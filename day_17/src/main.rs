@@ -152,8 +152,6 @@ fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
                     let clay_to_the_left = find_sand_or_clay_in_row((0..(x - 1)).rev(), &ground[y]);
                     let clay_to_the_right = find_sand_or_clay_in_row((x + 1).., &ground[y]);
 
-                    dbg!((x, y, clay_to_the_left, clay_to_the_right));
-
                     match (clay_to_the_left, clay_to_the_right) {
                         (Some(l), Some(r)) => {
                             // if we found clay on both sides, then everything in between are
