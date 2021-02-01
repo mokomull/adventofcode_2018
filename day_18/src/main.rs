@@ -3,7 +3,7 @@ use nom::multi::{many1, separated_list1};
 use nom::{IResult, Parser};
 use std::io::Read;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 enum Acre {
     Open,
     Trees,
@@ -72,9 +72,34 @@ fn main() {
         .read_to_string(&mut input)
         .expect("could not read stdin");
 
-    let mut north_pole = area(&input);
+    let north_pole = area(&input);
 
-    for _ in 0..10 {
+    let part1 = iterate(&north_pole, 10);
+    dbg!(part1);
+
+    let part2 = iterate(&north_pole, 1000000000);
+    dbg!(part2);
+}
+
+fn iterate(input: &Vec<Vec<Acre>>, count: usize) -> usize {
+    let mut north_pole = input.clone();
+
+    let mut seen = std::collections::HashMap::new();
+
+    for i in 0..count {
+        if let Some(cycle_start) = seen.insert(north_pole.clone(), i) {
+            let cycle_len = i - cycle_start;
+            let smaller_i = cycle_start + (count - cycle_start) % cycle_len;
+
+            north_pole = seen
+                .iter()
+                .find(|&(_, found_index)| found_index == &smaller_i)
+                .expect("should have found the index")
+                .0
+                .clone();
+            break;
+        }
+
         north_pole = advance(&north_pole);
     }
 
@@ -88,8 +113,7 @@ fn main() {
         .flatten()
         .filter(|&acre| acre == &Acre::Lumberyard)
         .count();
-    let part1 = trees * lumberyards;
-    dbg!(part1);
+    trees * lumberyards
 }
 
 #[cfg(test)]
