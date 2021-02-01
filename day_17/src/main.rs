@@ -148,46 +148,20 @@ fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
                     visit((x - 1, y), ground);
                     visit((x + 1, y), ground);
 
-                    let mut should_be_resting = true;
+                    let clay_to_the_left = find_sand_or_clay_in_row((0..(x - 1)).rev(), &ground[y]);
+                    let clay_to_the_right = find_sand_or_clay_in_row((x + 1).., &ground[y]);
 
-                    // look to our left
-                    for i in (0..(x - 1)).rev() {
-                        match ground.get(y).and_then(|row| row.get(i)) {
-                            None | Some(Square::Sand) => {
-                                // if we find sand before we find clay, then we know water is not
-                                // resting in this row.
-                                should_be_resting = false;
-                                break;
+                    dbg!((x, y, clay_to_the_left, clay_to_the_right));
+
+                    match (clay_to_the_left, clay_to_the_right) {
+                        (Some(l), Some(r)) => {
+                            // if we found clay on both sides, then everything in between are
+                            // Resting.  n.b.: "in between"; do not overwrite the Clay!
+                            for i in (l + 1)..=(r - 1) {
+                                ground[y][i] = Square::WaterResting;
                             }
-                            Some(Square::Clay) | Some(Square::WaterResting) => {
-                                // stop the search once we know the answer
-                                break;
-                            }
-                            // but keep searching if all we have is water
-                            Some(Square::WaterThrough) => (),
                         }
-                    }
-
-                    // and same to our right
-                    for i in (x + 1).. {
-                        match ground.get(y).and_then(|row| row.get(i)) {
-                            None | Some(Square::Sand) => {
-                                // if we find sand before we find clay, then we know water is not
-                                // resting in this row.
-                                should_be_resting = false;
-                                break;
-                            }
-                            Some(Square::Clay) | Some(Square::WaterResting) => {
-                                // stop the search once we know the answer
-                                break;
-                            }
-                            // but keep searching if all we have is water
-                            Some(Square::WaterThrough) => (),
-                        }
-                    }
-
-                    if should_be_resting {
-                        ground[y][x] = Square::WaterResting;
+                        _ => (),
                     }
                 }
                 None | Some(Square::WaterThrough) => (),
@@ -199,6 +173,29 @@ fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
         // infinite recursion.
         Some(Square::WaterResting) | Some(Square::WaterThrough) => (),
     }
+}
+
+fn find_sand_or_clay_in_row<I>(indices: I, row: &[Square]) -> Option<usize>
+where
+    I: Iterator<Item = usize>,
+{
+    for i in indices {
+        match row.get(i)? {
+            Square::Sand => {
+                // if we find sand before we find clay, then we know water is not
+                // resting in this row.
+                return None;
+            }
+            Square::Clay | Square::WaterResting => {
+                // stop the search once we know the answer
+                return Some(i);
+            }
+            // but keep searching if all we have is water
+            Square::WaterThrough => (),
+        }
+    }
+    // and if we never hit Clay, then we can assume the infinite grid is filled with Sand
+    None
 }
 
 fn main() {
