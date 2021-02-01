@@ -65,7 +65,6 @@ fn veins(input: &[u8]) -> IResult<&[u8], Vec<Vein>> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum Square {
-    Empty,
     Clay,
     Sand,
     WaterResting,
@@ -118,32 +117,56 @@ fn parse_scan(input: &[u8]) -> ((usize, usize), Vec<Vec<Square>>) {
     ((spring_x - min_x, spring_y - min_y), result)
 }
 
-fn count_reachable(spring: (usize, usize), ground: &Vec<Vec<Square>>) -> usize {
-    use std::collections::{HashSet, VecDeque};
-    use Square::Sand;
+fn count_reachable(spring: (usize, usize), ground: &mut Vec<Vec<Square>>) -> usize {
+    visit(spring, ground);
 
-    let mut reached: HashSet<(usize, usize)> = HashSet::new();
-    let mut to_visit = VecDeque::from(vec![spring]);
+    ground
+        .iter()
+        .map(|row| {
+            row.iter()
+                .filter(|&square| {
+                    square == &Square::WaterThrough || square == &Square::WaterResting
+                })
+                .count()
+        })
+        .sum()
+}
 
-    while !to_visit.is_empty() {
-        let (x, y) = to_visit.pop_front().unwrap();
-        if !reached.insert((x, y)) {
-            continue;
-        }
-        println!("visiting {:?} for the first time", (x, y));
+fn visit(location: (usize, usize), ground: &mut Vec<Vec<Square>>) {
+    let (x, y) = location;
 
-        if let Some(Sand) = ground.get(y + 1).and_then(|row| row.get(x)) {
-            to_visit.push_back((x, y + 1));
+    match ground.get(y).and_then(|row| row.get(x)).cloned() {
+        None | Some(Square::Clay) => (),
+        Some(Square::Sand) => {
+            ground[y][x] = Square::WaterThrough;
+            visit((x, y + 1), ground);
+
+            match ground.get(y + 1).and_then(|row| row.get(x)).cloned() {
+                Some(Square::Clay) | Some(Square::WaterResting) => {
+                    // if below me is standing water or clay, then try running
+                    // left and right
+                    visit((x - 1, y), ground);
+                    match ground.get(y).and_then(|row| row.get(x - 1)).cloned() {
+                        Some(Square::Clay) | Some(Square::WaterResting) => {
+                            ground[y][x] = Square::WaterResting;
+                        }
+                        _ => (),
+                    }
+                    visit((x + 1, y), ground);
+                }
+                None | Some(Square::WaterThrough) => (),
+                Some(Square::Sand) => panic!("visited below and it's still Sand"),
+            }
         }
-        if let Some(Sand) = ground[y].get(x.wrapping_sub(1)) {
-            to_visit.push_back((x - 1, y));
-        }
-        if let Some(Sand) = ground[y].get(x + 1) {
-            to_visit.push_back((x + 1, y));
-        }
+        // if we're moving horizontally, we'll try evaluating the same square as
+        // we move back the other direction, so just ignore that to avoid
+        // infinite recursion.
+        Some(Square::WaterResting) | Some(Square::WaterThrough) => (),
     }
+}
 
-    reached.len()
+fn main() {
+    unimplemented!();
 }
 
 #[cfg(test)]
@@ -223,7 +246,21 @@ y=13, x=498..504";
 
     #[test]
     fn test_count() {
-        let (spring, ground) = parse_scan(EXAMPLE_INPUT);
-        assert_eq!(count_reachable(spring, &ground), 57);
+        let (spring, mut ground) = parse_scan(EXAMPLE_INPUT);
+        let count = count_reachable(spring, &mut ground);
+
+        for row in &ground {
+            for square in row {
+                match square {
+                    Square::Sand => print!("."),
+                    Square::Clay => print!("#"),
+                    Square::WaterThrough => print!("|"),
+                    Square::WaterResting => print!("~"),
+                }
+            }
+            println!();
+        }
+
+        assert_eq!(count, 57);
     }
 }
