@@ -1,6 +1,7 @@
 use nom::bytes::complete::tag;
 use nom::multi::{many1, separated_list1};
 use nom::{IResult, Parser};
+use std::io::Read;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 enum Acre {
@@ -65,7 +66,30 @@ fn count_adjacent(source: &Vec<Vec<Acre>>, x: usize, y: usize, needle: Acre) -> 
 }
 
 fn main() {
-    println!("Hello, world!");
+    let mut input = String::new();
+    std::io::stdin()
+        .lock()
+        .read_to_string(&mut input)
+        .expect("could not read stdin");
+
+    let mut north_pole = area(&input);
+
+    for _ in 0..10 {
+        north_pole = advance(&north_pole);
+    }
+
+    let trees = north_pole
+        .iter()
+        .flatten()
+        .filter(|&acre| acre == &Acre::Trees)
+        .count();
+    let lumberyards = north_pole
+        .iter()
+        .flatten()
+        .filter(|&acre| acre == &Acre::Lumberyard)
+        .count();
+    let part1 = trees * lumberyards;
+    dbg!(part1);
 }
 
 #[cfg(test)]
