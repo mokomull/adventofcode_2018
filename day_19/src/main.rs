@@ -1,8 +1,5 @@
 #[derive(Debug, Eq, PartialEq)]
-enum Operation {
-    Ip(usize),
-    Opcode(opcodes::Opcode, usize, usize, usize),
-}
+struct Opcode(opcodes::Opcode, usize, usize, usize);
 
 mod parser {
     use nom::branch::alt;
@@ -13,7 +10,7 @@ mod parser {
     use nom::IResult;
     use nom::Parser;
 
-    use crate::Operation;
+    use crate::Opcode;
 
     fn opcode(input: &str) -> IResult<&str, opcodes::Opcode> {
         alt((
@@ -42,23 +39,28 @@ mod parser {
             .parse(input)
     }
 
-    fn line(input: &str) -> IResult<&str, Operation> {
-        alt((
-            tuple((tag("#ip "), integer)).map(|(_, i)| Operation::Ip(i)),
-            tuple((opcode, space1, integer, space1, integer, space1, integer))
-                .map(|(op, _, a, _, b, _, c)| Operation::Opcode(op, a, b, c)),
-        ))(input)
+    fn line(input: &str) -> IResult<&str, Opcode> {
+        tuple((opcode, space1, integer, space1, integer, space1, integer))
+            .map(|(op, _, a, _, b, _, c)| Opcode(op, a, b, c))
+            .parse(input)
     }
 
-    fn top(input: &str) -> IResult<&str, Vec<Operation>> {
-        separated_list1(line_ending, line)(input)
+    fn top(input: &str) -> IResult<&str, (usize, Vec<Opcode>)> {
+        tuple((
+            tag("#ip "),
+            integer,
+            line_ending,
+            separated_list1(line_ending, line),
+        ))
+        .map(|(_, binding, _, opcodes)| (binding, opcodes))
+        .parse(input)
     }
 
     #[cfg(test)]
     mod test {
         #[test]
         fn top() {
-            use crate::Operation::*;
+            use crate::Opcode;
             use opcodes::Opcode::*;
 
             let result = super::top(
@@ -77,16 +79,18 @@ seti 9 0 5
 
             assert_eq!(
                 result,
-                vec![
-                    Ip(0),
-                    Opcode(Seti, 5, 0, 1),
-                    Opcode(Seti, 6, 0, 2),
-                    Opcode(Addi, 0, 1, 0),
-                    Opcode(Addr, 1, 2, 3),
-                    Opcode(Setr, 1, 0, 0),
-                    Opcode(Seti, 8, 0, 4),
-                    Opcode(Seti, 9, 0, 5),
-                ]
+                (
+                    0,
+                    vec![
+                        Opcode(Seti, 5, 0, 1),
+                        Opcode(Seti, 6, 0, 2),
+                        Opcode(Addi, 0, 1, 0),
+                        Opcode(Addr, 1, 2, 3),
+                        Opcode(Setr, 1, 0, 0),
+                        Opcode(Seti, 8, 0, 4),
+                        Opcode(Seti, 9, 0, 5),
+                    ]
+                )
             );
         }
     }
