@@ -27,7 +27,11 @@ pub const ALL_OPCODES: &[Opcode] = &[
     Addr, Addi, Mulr, Muli, Banr, Bani, Borr, Bori, Setr, Seti, Gtir, Gtri, Gtrr, Eqir, Eqri, Eqrr,
 ];
 
-pub fn eval_one(opcode: Opcode, before: [Reg; 4], instruction: [Op; 4]) -> [Reg; 4] {
+pub fn eval_one<const N: usize>(
+    opcode: Opcode,
+    before: [Reg; N],
+    instruction: [Op; 4],
+) -> [Reg; N] {
     let [_opcode, source_1_idx, source_2_idx, dest_idx] = instruction;
 
     let source_1 = before[source_1_idx];
