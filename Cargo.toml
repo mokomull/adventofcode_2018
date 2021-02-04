@@ -1,2 +1,2 @@
 [workspace]
-members=["day_*"]
+members=["day_*", "opcodes"]
