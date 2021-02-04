@@ -197,6 +197,7 @@ name = "day_16"
 version = "0.1.0"
 dependencies = [
  "nom 4.2.3",
+ "opcodes",
 ]
 
 [[package]]
@@ -372,6 +373,10 @@ checksum = "bcef43580c035376c0705c42792c294b66974abbfd2789b511784023f71f3273"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "opcodes"
+version = "0.1.0"
 
 [[package]]
 name = "quick-error"
