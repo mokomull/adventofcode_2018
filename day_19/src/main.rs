@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use opcodes::Reg;
 
 #[derive(Debug, Eq, PartialEq)]
@@ -47,7 +49,7 @@ mod parser {
             .parse(input)
     }
 
-    fn top(input: &str) -> IResult<&str, (usize, Vec<Opcode>)> {
+    pub(crate) fn top(input: &str) -> IResult<&str, (usize, Vec<Opcode>)> {
         tuple((
             tag("#ip "),
             integer,
@@ -144,5 +146,14 @@ mod test {
 }
 
 fn main() {
-    println!("Hello, world!");
+    let mut input = String::new();
+    std::io::stdin()
+        .lock()
+        .read_to_string(&mut input)
+        .expect("could not read stdin");
+
+    let (binding, opcodes) = parser::top(&input).expect("parsing failed").1;
+    let regs = eval(binding, opcodes);
+    let part1 = regs[0];
+    dbg!(part1);
 }
