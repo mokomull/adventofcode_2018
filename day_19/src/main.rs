@@ -1,3 +1,5 @@
+use opcodes::Reg;
+
 #[derive(Debug, Eq, PartialEq)]
 struct Opcode(opcodes::Opcode, usize, usize, usize);
 
@@ -93,6 +95,51 @@ seti 9 0 5
                 )
             );
         }
+    }
+}
+
+fn eval(binding: usize, opcodes: Vec<Opcode>) -> [Reg; 6] {
+    let mut regs = [0; 6];
+
+    while (0..opcodes.len()).contains(&(regs[binding] as usize)) {
+        let ip = regs[binding] as usize;
+        let Opcode(opcode, a, b, c) = opcodes[ip];
+
+        regs = opcodes::eval_one(opcode, regs, [0, a, b, c]);
+
+        regs[binding] += 1;
+    }
+
+    // the last instruction executed would have had an out-of-bounds instruction pointer, but that
+    // value would have not been written into the registers (since that happens "during" opcode
+    // execution).  Undo the last += 1, then.
+    regs[binding] -= 1;
+
+    regs
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use opcodes::Opcode::*;
+
+    #[test]
+    fn eval() {
+        assert_eq!(
+            super::eval(
+                0,
+                vec![
+                    Opcode(Seti, 5, 0, 1),
+                    Opcode(Seti, 6, 0, 2),
+                    Opcode(Addi, 0, 1, 0),
+                    Opcode(Addr, 1, 2, 3),
+                    Opcode(Setr, 1, 0, 0),
+                    Opcode(Seti, 8, 0, 4),
+                    Opcode(Seti, 9, 0, 5),
+                ]
+            ),
+            [6, 5, 6, 0, 0, 9]
+        );
     }
 }
 
